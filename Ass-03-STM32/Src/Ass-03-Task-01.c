@@ -467,29 +467,3 @@ uint8_t myWriteFile()
 
 	return 0;
 }
-
-
-
-
-int8_t ls(uint8_t *args_p[], uint8_t num_count){
-          FRESULT res;
-          DIR dir;
-          UINT i;
-          static FILINFO fno;
-          char * path = (args_p[0]!=NULL)?args_p[0]:"";
-          res = f_opendir(&dir, path);                       /* Open the directory */
-          if (res == FR_OK) {
-              for (;;) {
-                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
-                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                      i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n", path, fno.fname);
-                  } else {                                       /* It is a file. */
-                	  safe_printf("%s/%s\t\t%i Bytes\n", path, fno.fname,fno.fsize);
-                  }
-              }
-              f_closedir(&dir);
-          }
-          return res;
-}
