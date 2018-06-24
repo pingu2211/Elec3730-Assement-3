@@ -105,15 +105,16 @@ bool isNumber(char * str){												// checks input against ascii table
 }
 /*******************************************************************************************************/
 int8_t help(char *args[], uint8_t count){   // help function to display command help messages
-	if (USR_DBG)printf("%s\n",args[0]);
+	if (USR_DBG)safe_printf("%s\n",args[0]);
 	for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
 
 		if(strcmp(CommandList[i].Command_string,args[0])==0){
-			printf("\%s\n",CommandList[i].Help_s);
+			safe_printf("\%s\n",CommandList[i].Help_s);
 		}
 		if (count==0){												// when user types 'help' and no command
-			for (int h=0;CommandList[h].Command_string!=NULL;h++)
-			printf("\%s\n",CommandList[h].Help_s);					// print ALL command help messages
+			for (int h=0;CommandList[h].Command_string!=NULL;h++){
+			safe_printf("\%s\n",CommandList[h].Help_s);	// print ALL command help messages
+			}
 		}
 	}
 	return 0;
@@ -158,62 +159,107 @@ int8_t analog(char *args[]){
 		}
 		if (number<0){
 			printf("Argument must be a positive number - time cannot be negative");
+			return -1;
 		}
 	}
 }
 /*******************************************************************************************************/
-int8_t ls(char *args[]){
-	FILEINFO* info;
-	DIR* dir;
-	DIR* dir_new;
-	FRESULT res;
-	XXX res_read;
-	if (USR_DBG)printf("%s\n",args[0]);
-		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-
-			if(strcmp(CommandList[i].Command_string,args[0])==0){
-				printf("\%s\n",CommandList[i].ls);
-			}
-			if (count==0){												// when user types 'ls' and no directory name
-				for (int h=0;CommandList[h].Command_string!=NULL;h++){
-					res = f_opendir (&dir);	// open current directory
-					if(res!=FR_OK){ break
-					}else{
-					res_read = f_readdir(res);
-					printf("\%s\n",res_read);			// print ALL elements of current directory
-					}
-				}
-			}
-			if (count>0){												// when user types 'ls' and no directory name
-				for (int h=0;CommandList[h].Command_string!=NULL;h++){
-					/* if typed SECOND word is a directory name, open that directory*/
-					res = f_opendir(&dir,args[0]);	// open current directory
-					res_read =f_readdir(res);
-					/* if directory failed, print error*/
-					printf("\%s\n",res_read);							// print ALL elements of current directory
-				}
-			}
-		}
-		return 0;
+//int8_t ls(char *args[]){
+//	FILEINFO* info;
+//	DIR* dir;
+//	DIR* dir_new;
+//	FRESULT res;
+//	XXX res_read;
+//	if (USR_DBG)printf("%s\n",args[0]);
+//		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
+//
+//			if(strcmp(CommandList[i].Command_string,args[0])==0){
+//				printf("\%s\n",CommandList[i].ls);
+//			}
+//			if (count==0){												// when user types 'ls' and no directory name
+//				for (int h=0;CommandList[h].Command_string!=NULL;h++){
+//					res = f_opendir (&dir);	// open current directory
+//					if(res!=FR_OK){ break
+//					}else{
+//					res_read = f_readdir(res);
+//					printf("\%s\n",res_read);			// print ALL elements of current directory
+//					}
+//				}
+//			}
+//			if (count>0){												// when user types 'ls' and no directory name
+//				for (int h=0;CommandList[h].Command_string!=NULL;h++){
+//					/* if typed SECOND word is a directory name, open that directory*/
+//					res = f_opendir(&dir,args[0]);	// open current directory
+//					res_read =f_readdir(res);
+//					/* if directory failed, print error*/
+//					printf("\%s\n",res_read);							// print ALL elements of current directory
+//				}
+//			}
+//		}
+//		return 0;
 	//f_opendir (DIR* dp, const TCHAR* path);
 
+//}
+int8_t ls(uint8_t *args_p[], uint8_t num_count){
+          FRESULT res;
+          DIR dir;
+          UINT i;
+          static FILINFO fno;
+          char * path = (args_p[0]!=NULL)?args_p[0]:"";
+          res = f_opendir(&dir, path);                       /* Open the directory */
+          if (res == FR_OK) {
+              for (;;) {
+                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
+                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                      i = strlen(path);
+                      safe_printf("%s/%s\t\t\tDIR\n", path, fno.fname);
+                  } else {                                       /* It is a file. */
+                	  safe_printf("%s/%s\t\t%i Bytes\n", path, fno.fname,fno.fsize);
+                  }
+              }
+              f_closedir(&dir);
+          }
+          return res;
 }
 /*******************************************************************************************************/
 int8_t cd(const TCHAR* path){
+	FRESULT res;
+	         DIR dir;
+	         char * path = (args_p[0]!=NULL)?args_p[0]:"";
+	         res = f_chdir(path);
 
-	f_chdir (const TCHAR* path);
+	    	if (res != FR_OK) {
+	    		safe_printf("Error occurred. Directory not found.\n");
+	    	} 	else {
+	    		safe_printf("%s\n",path);
+	    		}
 }
 /*******************************************************************************************************/
 int8_t mkdir(const TCHAR* path){
-
+	FRESULT res;
+	          DIR dir;
+	          UINT i;
+	          static FILINFO fno;
+	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
 	f_mkdir (const TCHAR* path);
 }
 /*******************************************************************************************************/
 int8_t cp(){
+	FRESULT res;
+	          DIR dir;
+	          UINT i;
+	          static FILINFO fno;
+	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
 	f_rename (const TCHAR* path_old, const TCHAR* path_new); // ???
 }
 /*******************************************************************************************************/
 int8_t rm(const TCHAR* path){
+	FRESULT res;
+	          DIR dir;
+	          UINT i;
+	          static FILINFO fno;
+	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
 
 	f_unlink (const TCHAR* path);
 }
@@ -453,20 +499,4 @@ int8_t ls(uint8_t *args_p[], uint8_t num_count){
               f_closedir(&dir);
           }
           return res;
-}
-
-int8_t help(char *args[], uint8_t count){   // help function to display command help messages
-	if (USR_DBG)safe_printf("%s\n",args[0]);
-	for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-
-		if(strcmp(CommandList[i].Command_string,args[0])==0){
-			safe_printf("\%s\n",CommandList[i].Help_s);
-		}
-		if (count==0){												// when user types 'help' and no command
-			for (int h=0;CommandList[h].Command_string!=NULL;h++){
-			safe_printf("\%s\n",CommandList[h].Help_s);	// print ALL command help messages
-			}
-		}
-	}
-	return 0;
 }
