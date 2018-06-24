@@ -217,17 +217,29 @@ int8_t cp(uint8_t *args[]){
 	 DIR dir;
 	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
 	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
-
-	 res = f_rename(path_old, path_new);                       /* Open the directory */
-	          if (res == FR_OK) {
-	              for (;;) {
-	                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
-	                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-	                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-	                      i = strlen(path);
-	f_rename (const TCHAR* path_old, const TCHAR* path_new); // ???
-	return res;
+	 res = f_chdir(path_new);
+	 if (res != FR_OK){
+		 res = f_rename(path_old, dir);
+		 if (res != FR_OK){
+			 safe_printf("Error Occurred. Could not copy file.");
+			 return -1;
+		 } else {
+			 safe_printf("New destination not found. File copied to current directory.");
+			 return res;
+		 }
+		 return res;
+	 } else {
+		 res = f_rename(path_old, path_new);                       /* Open the directory */
+		 if (res != FR_OK){
+			 safe_printf("Error Occurred. Could not copy file.");
+			 return -1;
+		 } else {
+			 safe_printf("File successfully copied to new folder.");
+			 return res;
+		 }
+	 }
 }
+
 /*******************************************************************************************************/
 int8_t rm(const TCHAR* path){
 	FRESULT res;
