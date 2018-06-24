@@ -224,17 +224,16 @@ int8_t ls(uint8_t *args_p[], uint8_t num_count){
 }
 /*******************************************************************************************************/
 int8_t cd(uint8_t *args_p[]){
-	FRESULT res;
-	         DIR dir;
-	         char * path = (args_p[0]!=NULL)?args_p[0]:"";
-	         res = f_chdir(path);
-
-	    	if (res != FR_OK) {
-	    		safe_printf("Error occurred. Directory not found.\n");
-	    	} 	else {
-	    		safe_printf("%s\n",path);
-	    	}
-	    	return res;
+		FRESULT res;
+	    DIR dir;
+	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
+	    res = f_chdir(path);
+	    if (res != FR_OK) {
+	    	safe_printf("Error occurred. Directory not found.\n");
+	    } 	else {
+	   		safe_printf("%s\n",path);
+	   	}
+	    return res;
 }
 /*******************************************************************************************************/
 int8_t mkdir(uint8_t *args_p[]){
@@ -252,10 +251,9 @@ int8_t mkdir(uint8_t *args_p[]){
 int8_t cp(uint8_t *args[]){
 	 FRESULT res;
 	 DIR dir;
-	 UINT i;
-	 static FILINFO fno;
 	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
 	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
+
 	 res = f_rename(path_old, path_new);                       /* Open the directory */
 	          if (res == FR_OK) {
 	              for (;;) {
