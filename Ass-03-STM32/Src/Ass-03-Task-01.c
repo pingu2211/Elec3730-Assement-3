@@ -30,15 +30,17 @@ int8_t *Help_s; 													// Help information
 } command_s;
 
 int8_t ls(uint8_t *numbers_p[], uint8_t num_count);
+int8_t mkdir(uint8_t *numbers_p[], uint8_t num_count);
 int string_parser (char *inp, char **array_of_words_p[]);
 
 bool USR_DBG = true;
 const command_s CommandList[] = {												// structure holding list of commands and their help displays.
 {"ls", 		&ls, 		"lists the contense of the currentr directory"},							// addition function
+{"mkdir",	&mkdir,		"creats a new director <dir>"},
 {NULL, 			NULL, 		NULL}
 };
 
-int Command_Function(int num_count, char **Array_numbers){				// function takes input from user and compares the command with list of commands
+int Command_Function(int num_count, char **Array_numbers[]){				// function takes input from user and compares the command with list of commands
 	char **Args;
 	safe_printf("%s\n",Array_numbers[0]);						// each command references a particular function (add, multiply, etc.)
 	if (num_count>1) Args = &Array_numbers[1];
@@ -82,7 +84,7 @@ void Ass_03_Task_01(void const * argument)
   BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
   BSP_LCD_DisplayStringAt(5, 5, (uint8_t*)"ELEC3730 Assignment 3 (v03 $Rev: 1330 $)",LEFT_MODE);
   osMutexRelease(myMutex01Handle);
-
+  myWriteFile();
   while (1)
   {
 		buff = malloc(2*sizeof(char));
@@ -93,10 +95,11 @@ void Ass_03_Task_01(void const * argument)
 			buff = realloc(buff,(i+1)*sizeof(char));
 			c=getchar();
 			buff[i] = ((c==CR || c==LF))?'\0':c;
-			printf("%c\n",buff[i]);
+			safe_printf("%c\n",buff[i]);
 			HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
 		}
 		count = string_parser (buff, &words);
+		safe_printf("word count = %d\n",count);
 		Command_Function(count, words);
 		free(buff);
   }
@@ -105,7 +108,10 @@ void Ass_03_Task_01(void const * argument)
 
 void myGetLine(char * buff_out[]){
 	char *buff = malloc(2*sizeof(char));
-	if (buff == NULL) return;
+	if (buff == NULL){
+		safe_printf("ERROR ALLOCATING MEMORY\n");
+		return;
+	}
 
 	int i=0;
 	char c=0;
@@ -113,30 +119,117 @@ void myGetLine(char * buff_out[]){
 		buff = realloc(buff,(i+1)*sizeof(char));
 		c=getchar();
 		buff[i] = ((c==CR || c==LF))?'\0':c;
-		printf("%c\n",buff[i]);
+		safe_printf("%c\n",buff[i]);
 		HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
 	}
 	*buff_out = buff;
 	return;
 }
 
-int string_parser (char *inp, char **array_of_words_p[]){
-	int i;
-	char ** words;
-	words = malloc (1*sizeof(char*));
-	    for (int i=0;words[i] != NULL;i++)
-	    {
-	      words=realloc(words,i*sizeof(char*));
-	      if (words!=NULL){
-	    	  words[i] = strtok ((i==0)?inp:NULL," ,.-");
-	      }else{
-	    	  safe_printf("Error alocating memeory\n");
-	    	  return 0;
-	      }
-	    }
-	    array_of_words_p= &words;
-	    return i+1;
-  }
+int string_parser(char *inp, char **array_of_words_p[])
+{
+	//Check if parsed string is valid, doesn't equal null and is not empty
+	if(inp == NULL)
+	{
+		safe_printf("ERROR - NULL String \n");
+		return 0;
+	}
+	if(strlen(inp) == 0)
+	{
+		safe_printf("ERROR - Empty string \n");
+		return 0;
+	}
+	//Count number of words by increasing word_c each time a space character  is reached after a normal character
+	int i = 0;
+	int word_c = 1;
+	while(inp[i] == ' ')
+	{
+		i++;
+	}
+	while('\0' != inp[i] && '\n' != inp[i])
+	{
+		if (inp[i] == ' ' && inp[i+1] != ' ' && inp[i+1] != '\0' && inp[i+1] != '\n')
+		{
+			word_c ++;
+		}
+		i++;
+	}
+	//Create the array_of_words which holds pointers to the word strings
+	char ** array_of_words;
+	array_of_words = (char**) malloc(word_c*sizeof(char*));
+	if(array_of_words == NULL)
+	{
+		safe_printf("ERROR - error in Malloc 5\n");
+		return 0;
+	}
+	/*
+	 * the next block of code stores each word in 'tempstring' and this is used to
+	 * allocate the right amount of space in the array_of_words and then the contents
+	 * of 'tempstring' is copied into the array_of_words
+	 */
+
+	int word_start = 0;
+	i = 0;
+	int k = 0; //local loop counter
+	int p = 0; //local loop counter
+	int character_c = 0;
+	char* tempstring = NULL;
+	char* temp_pointer = NULL;
+	//while p is less than number of words counted previously
+	while(p < word_c)
+	{
+		//increase i to the start of the word that isnt a space
+		while(inp[word_start] == ' ')
+		{
+			word_start++;
+		}
+		//count number of characters in the word
+		i = word_start;
+		while(inp[i] != ' ' && inp[i] != '\0' && inp[i] != '\n')
+		{
+			character_c ++;
+			i++;
+		}
+		//Allocate memory for tempstring according to number of characters counted + 1 for null character
+
+		temp_pointer = (char*) realloc(tempstring,(character_c+1)*sizeof(char));
+		if(temp_pointer == NULL)
+		{
+			safe_printf("ERROR - error in Malloc 6\n");
+			return 0;
+		}
+		tempstring = temp_pointer;
+		temp_pointer = NULL;
+		//copy each character of the word to the tempstring
+		i = word_start;
+		k = 0;
+		while(k < character_c)
+		{
+			tempstring[k] = inp[i];
+			k++;
+			i++;
+		}
+		//add null character to end of string to make a valid null terminated string
+		tempstring[k] = '\0';
+		//array_of_words[] is then allocated memory the same size of the current 'tempstring' and the contents of tempstring are copied into the array_of_words[]
+		array_of_words[p] = (char*) malloc(sizeof(char)*(strlen(tempstring)+1));
+		if(array_of_words[p] == NULL)
+		{
+			safe_printf("ERROR - error in Malloc 7\n");
+			return 0;
+		}
+		strcpy(array_of_words[p], tempstring);
+		word_start = word_start + character_c;
+		k = 0;
+		character_c = 0;
+
+		p++;
+	}
+
+	*array_of_words_p = array_of_words; //put array of words into array of words pointer
+	free(tempstring); //free malloc'd memory
+	return (word_c);  //return word count
+}
 
 
 uint8_t myReadFile()
@@ -209,7 +302,7 @@ int8_t ls(uint8_t *args_p[], uint8_t num_count){
           DIR dir;
           UINT i;
           static FILINFO fno;
-          char * path = (args_p[0]!=NULL)?args_p[0]:"";
+          char * path = (num_count<0)?args_p[0]:"";
           res = f_opendir(&dir, path);                       /* Open the directory */
           if (res == FR_OK) {
               for (;;) {
@@ -217,14 +310,18 @@ int8_t ls(uint8_t *args_p[], uint8_t num_count){
                   if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
                   if (fno.fattrib & AM_DIR) {                    /* It is a directory */
                       i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n", path, fno.fname);
+                      safe_printf("%s/%s\t\t\tDIR\n\n", path, fno.fname);
                   } else {                                       /* It is a file. */
-                	  safe_printf("%s/%s\t\t%i Bytes\n", path, fno.fname,fno.fsize);
+                	  safe_printf("%s\t\t%i Bytes\n\n", fno.fname,fno.fsize);
                   }
               }
               f_closedir(&dir);
           }
           return res;
+}
+
+int8_t mkdir(uint8_t *args_p[], uint8_t num_count){
+	f_mkdir(args_p[0]);
 }
 
 int8_t help(char *args[], uint8_t count){   // help function to display command help messages
