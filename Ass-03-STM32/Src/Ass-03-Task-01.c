@@ -195,7 +195,7 @@ int8_t cd(uint8_t *args_p[]){
 	    if (res != FR_OK) {
 	    	safe_printf("Error occurred. Directory not found.\n");
 	    } 	else {
-	   		safe_printf("%s\n",path);
+	   		safe_printf("Current folder: %s\n",path);
 	   	}
 	    return res;
 }
@@ -207,7 +207,7 @@ int8_t mkdir(uint8_t *args_p[]){
 		if (res != FR_OK){
 			safe_printf("Error occurred. Unable to create directory.\n");
 		} 	else {
-	    		safe_printf("%s\n",path);
+	    		safe_printf("New folder: %s\n",path);
 		}
 		return res;
 }
@@ -221,34 +221,40 @@ int8_t cp(uint8_t *args[]){
 	 if (res != FR_OK){
 		 res = f_rename(path_old, dir);
 		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy file.");
+			 safe_printf("Error Occurred. Could not copy file.\n");
 			 return -1;
 		 } else {
-			 safe_printf("New destination not found. File copied to current directory.");
+			 safe_printf("New destination not found. File copied to current directory.\n");
+			 char *file_new = strcat((path_old)2);
+			 safe_printf("New file: %s\n", file_new);
 			 return res;
 		 }
-		 return res;
 	 } else {
 		 res = f_rename(path_old, path_new);                       /* Open the directory */
 		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy file.");
+			 safe_printf("Error Occurred. Could not copy file.\n");
 			 return -1;
 		 } else {
-			 safe_printf("File successfully copied to new folder.");
+			 safe_printf("File successfully copied to new folder.\n");
+			 safe_printf("New File: %s/%s\n", dir, path_new);
 			 return res;
 		 }
 	 }
 }
 
 /*******************************************************************************************************/
-int8_t rm(const TCHAR* path){
+int8_t rm(uint8_t *args[]){
 	FRESULT res;
-	          DIR dir;
-	          UINT i;
-	          static FILINFO fno;
-	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
-
-	f_unlink (const TCHAR* path);
+	DIR dir;
+	char * path = (args_p[0]!=NULL)?args_p[0]:"";
+	res = f_unlink (path);
+	if (res != FR_OK){
+		safe_printf("Error Occurred. File %s was not deleted successfully.\n", path);
+		return -1;
+	} else {
+		safe_printf("Deleted: %s\n", path);
+		return res;
+	}
 }
 /*********************************************************************************************/
 /* command structure*/
