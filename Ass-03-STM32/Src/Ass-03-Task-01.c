@@ -164,42 +164,6 @@ int8_t analog(char *args[]){
 	}
 }
 /*******************************************************************************************************/
-//int8_t ls(char *args[]){
-//	FILEINFO* info;
-//	DIR* dir;
-//	DIR* dir_new;
-//	FRESULT res;
-//	XXX res_read;
-//	if (USR_DBG)printf("%s\n",args[0]);
-//		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-//
-//			if(strcmp(CommandList[i].Command_string,args[0])==0){
-//				printf("\%s\n",CommandList[i].ls);
-//			}
-//			if (count==0){												// when user types 'ls' and no directory name
-//				for (int h=0;CommandList[h].Command_string!=NULL;h++){
-//					res = f_opendir (&dir);	// open current directory
-//					if(res!=FR_OK){ break
-//					}else{
-//					res_read = f_readdir(res);
-//					printf("\%s\n",res_read);			// print ALL elements of current directory
-//					}
-//				}
-//			}
-//			if (count>0){												// when user types 'ls' and no directory name
-//				for (int h=0;CommandList[h].Command_string!=NULL;h++){
-//					/* if typed SECOND word is a directory name, open that directory*/
-//					res = f_opendir(&dir,args[0]);	// open current directory
-//					res_read =f_readdir(res);
-//					/* if directory failed, print error*/
-//					printf("\%s\n",res_read);							// print ALL elements of current directory
-//				}
-//			}
-//		}
-//		return 0;
-	//f_opendir (DIR* dp, const TCHAR* path);
-
-//}
 int8_t ls(uint8_t *args_p[], uint8_t num_count){
           FRESULT res;
           DIR dir;
