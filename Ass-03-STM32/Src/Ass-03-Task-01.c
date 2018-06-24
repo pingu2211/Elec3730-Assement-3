@@ -223,7 +223,7 @@ int8_t ls(uint8_t *args_p[], uint8_t num_count){
           return res;
 }
 /*******************************************************************************************************/
-int8_t cd(const TCHAR* path){
+int8_t cd(uint8_t *args_p[]){
 	FRESULT res;
 	         DIR dir;
 	         char * path = (args_p[0]!=NULL)?args_p[0]:"";
@@ -233,25 +233,38 @@ int8_t cd(const TCHAR* path){
 	    		safe_printf("Error occurred. Directory not found.\n");
 	    	} 	else {
 	    		safe_printf("%s\n",path);
-	    		}
+	    	}
+	    	return res;
 }
 /*******************************************************************************************************/
-int8_t mkdir(const TCHAR* path){
-	FRESULT res;
-	          DIR dir;
-	          UINT i;
-	          static FILINFO fno;
-	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
-	f_mkdir (const TCHAR* path);
+int8_t mkdir(uint8_t *args_p[]){
+		FRESULT res;
+		char * path = (args_p[0]!=NULL)?args_p[0]:"";
+		res = f_mkdir(path);
+		if (res != FR_OK){
+			safe_printf("Error occurred. Unable to create directory.\n");
+		} 	else {
+	    		safe_printf("%s\n",path);
+		}
+		return res;
 }
 /*******************************************************************************************************/
-int8_t cp(){
-	FRESULT res;
-	          DIR dir;
-	          UINT i;
-	          static FILINFO fno;
-	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
+int8_t cp(uint8_t *args[]){
+	 FRESULT res;
+	 DIR dir;
+	 UINT i;
+	 static FILINFO fno;
+	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
+	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
+	 res = f_rename(path_old, path_new);                       /* Open the directory */
+	          if (res == FR_OK) {
+	              for (;;) {
+	                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
+	                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+	                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+	                      i = strlen(path);
 	f_rename (const TCHAR* path_old, const TCHAR* path_new); // ???
+	return res;
 }
 /*******************************************************************************************************/
 int8_t rm(const TCHAR* path){
