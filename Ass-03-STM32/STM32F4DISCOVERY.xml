@@ -8,6 +8,7 @@
 	<!ELEMENT mcuId (#PCDATA)>
 	<!ATTLIST board id CDATA #REQUIRED>
 ]>
+<<<<<<< HEAD
 
 <targetDefinitions>
   <board id="stm32f4discovery">
@@ -18,3 +19,15 @@
     <mcuId>stm32f407vgtx</mcuId>
   </board>
 </targetDefinitions>
+=======
+
+<targetDefinitions>
+  <board id="stm32f4discovery">
+    <name>STM32F4DISCOVERY</name>
+    <dbgIF>SWD</dbgIF>
+    <dbgIF>JTAG</dbgIF>
+    <dbgDEV>ST-Link</dbgDEV>
+    <mcuId>stm32f407vgtx</mcuId>
+  </board>
+</targetDefinitions>
+>>>>>>> cdb7fb30042539c5529e34473bd3f31a455d32f0
