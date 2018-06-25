@@ -386,11 +386,10 @@ void Ass_03_Task_01(void const * argument)
 			buff = realloc(buff,(i+1)*sizeof(char));
 			c=getchar();
 			buff[i] = ((c==CR || c==LF))?'\0':c;
-			safe_printf("%c\n",buff[i]);
+			safe_printf("%c",buff[i]);
 			HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
 		}
 		count = string_parser (buff, &words);
-		safe_printf("word count = %d\n",count);
 		Command_Function(count, words);
 		free(buff);
   }
@@ -420,15 +419,10 @@ void myGetLine(char * buff_out[]){
 int string_parser(char *inp, char **array_of_words_p[])
 {
 	//Check if parsed string is valid, doesn't equal null and is not empty
-	if(inp == NULL)
+	if(inp == NULL || strlen(inp) == 0)
 	{
 		safe_printf("ERROR - NULL String \n");
-		return 0;
-	}
-	if(strlen(inp) == 0)
-	{
-		safe_printf("ERROR - Empty string \n");
-		return 0;
+		return -1;
 	}
 	//Count number of words by increasing word_c each time a space character  is reached after a normal character
 	int i = 0;
@@ -521,6 +515,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	free(tempstring); //free malloc'd memory
 	return (word_c);  //return word count
 }
+
 
 
 uint8_t myReadFile()
@@ -630,71 +625,71 @@ int8_t help(uint8_t *args[], uint8_t count){   // help function to display comma
 	return 0;
 }
 
-/*******************************************************************************************************//*
-int string_parser (char *inp, char **array_of_words_p[]) {
-	int word_count=0;								// counts amount of input strings
-	int j = 0;										// counts number of characters in each string
-	int input_lenght = strlen (inp);
-	if (input_lenght == 0) { return 0; }			// end if the input was empty
-	char** array_of_words;							// pointer to array of input strings
-	array_of_words = (char**)malloc(sizeof( *array_of_words) * input_lenght);	// allocate memory for array of strings
-	array_of_words[word_count] = (char*)malloc(input_lenght);					// allocate memory for each individual string in the input string
-
-	if (*array_of_words){
-		for (int i = 0; inp[i] != NULL; i++) {				// for loop that goes through each character of the input and checks it
-			if (inp[i]!=' ') {								// if the input character is not a space
-				array_of_words[word_count][j] = inp[i];		// element j of the current string = the input character
-				j++;										// increase word letter counter by 1
-			}
-			else if (j>0) {									// if input character is a space
-				array_of_words[word_count][j] = '\0';		// end the string with a NULL
-				array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1); // allocate memory for the NULL
-				if (!array_of_words[word_count]) {
-					printf ("Error in String Passer\nerror reallocating memory"); 	// print error if error occurred allocating memory
-					return -1;
-				}
-				word_count++;												// increase the word counter by 1
-				array_of_words[word_count] = (char*)malloc (input_lenght);	// allocate memory for string
-				j = 0;
-
-			}else{
-				j=0;
-				continue;
-			}
-
-		array_of_words[word_count][j] = '\0';												// end string with NULL
-		array_of_words[word_count] = (char*)realloc (array_of_words[word_count], j + 1); 	// allocate memory for the NULL
-
-		if (!array_of_words[word_count]) {
-			printf ("Error in String Passer\nerror reallocating memory");	// print error if memory allocation failed
-			return -1;
-		}
-		word_count++;													// increase word count by 1
-		array_of_words[word_count] = (char*)malloc (input_lenght);		// allocate memory for size of input string
-		j = 0;
-		}
-
-		if(j>0){
-			array_of_words[word_count][j] = '\0';
-							array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1);
-							if (!array_of_words[word_count]) {
-								printf ("Error in String Passer\nerror reallocsting memmory");
-								return -1;
-							}
-							word_count++;
-							array_of_words[word_count] = (char*)malloc (input_lenght);
-							j = 0;
-		}
-	}
-	else {
-		printf ("Error in String Passer\nerror allocating memory");		// print error message if memory allocation failed
-		return -1;
-	}
-	array_of_words = (char**)realloc (array_of_words, sizeof (*array_of_words) * word_count); // allocate memory for size of array of strings
-	*array_of_words_p = array_of_words;							// pointer to array of words
-	if (USR_DBG)printf ("WordCount = %d\n", word_count);		// debug messages
-	return word_count;
-}*/
+/*******************************************************************************************************/
+//int string_parser (char *inp, char **array_of_words_p[]) {
+//	int word_count=0;								// counts amount of input strings
+//	int j = 0;										// counts number of characters in each string
+//	int input_lenght = strlen (inp);
+//	if (input_lenght == 0) { return 0; }			// end if the input was empty
+//	char** array_of_words;							// pointer to array of input strings
+//	array_of_words = (char**)malloc(sizeof( *array_of_words) * input_lenght);	// allocate memory for array of strings
+//	array_of_words[word_count] = (char*)malloc(input_lenght);					// allocate memory for each individual string in the input string
+//
+//	if (*array_of_words){
+//		for (int i = 0; inp[i] != NULL; i++) {				// for loop that goes through each character of the input and checks it
+//			if (inp[i]!=' ') {								// if the input character is not a space
+//				array_of_words[word_count][j] = inp[i];		// element j of the current string = the input character
+//				j++;										// increase word letter counter by 1
+//			}
+//			else if (j>0) {									// if input character is a space
+//				array_of_words[word_count][j] = '\0';		// end the string with a NULL
+//				array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1); // allocate memory for the NULL
+//				if (!array_of_words[word_count]) {
+//					printf ("Error in String Passer\nerror reallocating memory"); 	// print error if error occurred allocating memory
+//					return -1;
+//				}
+//				word_count++;												// increase the word counter by 1
+//				array_of_words[word_count] = (char*)malloc (input_lenght);	// allocate memory for string
+//				j = 0;
+//
+//			}else{
+//				j=0;
+//				continue;
+//			}
+//
+//		array_of_words[word_count][j] = '\0';												// end string with NULL
+//		array_of_words[word_count] = (char*)realloc (array_of_words[word_count], j + 1); 	// allocate memory for the NULL
+//
+//		if (!array_of_words[word_count]) {
+//			printf ("Error in String Passer\nerror reallocating memory");	// print error if memory allocation failed
+//			return -1;
+//		}
+//		word_count++;													// increase word count by 1
+//		array_of_words[word_count] = (char*)malloc (input_lenght);		// allocate memory for size of input string
+//		j = 0;
+//		}
+//
+//		if(j>0){
+//			array_of_words[word_count][j] = '\0';
+//							array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1);
+//							if (!array_of_words[word_count]) {
+//								printf ("Error in String Passer\nerror reallocsting memmory");
+//								return -1;
+//							}
+//							word_count++;
+//							array_of_words[word_count] = (char*)malloc (input_lenght);
+//							j = 0;
+//		}
+//	}
+//	else {
+//		printf ("Error in String Passer\nerror allocating memory");		// print error message if memory allocation failed
+//		return -1;
+//	}
+//	array_of_words = (char**)realloc (array_of_words, sizeof (*array_of_words) * word_count); // allocate memory for size of array of strings
+//	*array_of_words_p = array_of_words;							// pointer to array of words
+//	if (USR_DBG)printf ("WordCount = %d\n", word_count);		// debug messages
+//	return word_count;
+//}
 /*******************************************************************************************************/
 bool isNumber(char * str){												// checks input against ascii table
 	for (int i=0;i<strlen(str);i++){									// makes sure input is a number
