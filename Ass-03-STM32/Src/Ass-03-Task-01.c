@@ -24,236 +24,8 @@ int false = 0;
 int true = !0;
 int count = 0;
 bool USR_DBG = false;
+
 /*******************************************************************************************************/
-int string_parser (char *inp, char **array_of_words_p[]) {
-	int word_count=0;								// counts amount of input strings
-	int j = 0;										// counts number of characters in each string
-	int input_lenght = strlen (inp);
-	if (input_lenght == 0) { return 0; }			// end if the input was empty
-	char** array_of_words;							// pointer to array of input strings
-	array_of_words = (char**)malloc(sizeof( *array_of_words) * input_lenght);	// allocate memory for array of strings
-	array_of_words[word_count] = (char*)malloc(input_lenght);					// allocate memory for each individual string in the input string
-
-	if (*array_of_words){
-		for (int i = 0; inp[i] != NULL; i++) {				// for loop that goes through each character of the input and checks it
-			if (inp[i]!=' ') {								// if the input character is not a space
-				array_of_words[word_count][j] = inp[i];		// element j of the current string = the input character
-				j++;										// increase word letter counter by 1
-			}
-			else if (j>0) {									// if input character is a space
-				array_of_words[word_count][j] = '\0';		// end the string with a NULL
-				array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1); // allocate memory for the NULL
-				if (!array_of_words[word_count]) {
-					printf ("Error in String Passer\nerror reallocating memory"); 	// print error if error occurred allocating memory
-					return -1;
-				}
-				word_count++;												// increase the word counter by 1
-				array_of_words[word_count] = (char*)malloc (input_lenght);	// allocate memory for string
-				j = 0;
-
-			}else{
-				j=0;
-				continue;
-			}
-
-		array_of_words[word_count][j] = '\0';												// end string with NULL
-		array_of_words[word_count] = (char*)realloc (array_of_words[word_count], j + 1); 	// allocate memory for the NULL
-
-		if (!array_of_words[word_count]) {
-			printf ("Error in String Passer\nerror reallocating memory");	// print error if memory allocation failed
-			return -1;
-		}
-		word_count++;													// increase word count by 1
-		array_of_words[word_count] = (char*)malloc (input_lenght);		// allocate memory for size of input string
-		j = 0;
-		}
-
-		if(j>0){
-			array_of_words[word_count][j] = '\0';
-							array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1);
-							if (!array_of_words[word_count]) {
-								printf ("Error in String Passer\nerror reallocsting memmory");
-								return -1;
-							}
-							word_count++;
-							array_of_words[word_count] = (char*)malloc (input_lenght);
-							j = 0;
-		}
-	}
-	else {
-		printf ("Error in String Passer\nerror allocating memory");		// print error message if memory allocation failed
-		return -1;
-	}
-	array_of_words = (char**)realloc (array_of_words, sizeof (*array_of_words) * word_count); // allocate memory for size of array of strings
-	*array_of_words_p = array_of_words;							// pointer to array of words
-	if (USR_DBG)printf ("WordCount = %d\n", word_count);		// debug messages
-	return word_count;
-}
-///*******************************************************************************************************/
-//bool isNumber(char * str){												// checks input against ascii table
-//	for (int i=0;i<strlen(str);i++){									// makes sure input is a number
-//		if ( (str[i] < 48 || str[i] >57)&&!(str[i]==45||str[i]==46) ){
-//			if (USR_DBG)printf("is not a number\n");					// print debug messages
-//			return false;
-//		}
-//	}
-//	if (USR_DBG)printf("\n|%s|string is |%lf|double\n",str,atof(str));
-//	return true;
-//}
-///*******************************************************************************************************/
-//int8_t help(char *args[], uint8_t count){   // help function to display command help messages
-//	if (USR_DBG)safe_printf("%s\n",args[0]);
-//	for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-//
-//		if(strcmp(CommandList[i].Command_string,args[0])==0){
-//			safe_printf("\%s\n",CommandList[i].Help_s);
-//		}
-//		if (count==0){												// when user types 'help' and no command
-//			for (int h=0;CommandList[h].Command_string!=NULL;h++){
-//			safe_printf("\%s\n",CommandList[h].Help_s);	// print ALL command help messages
-//			}
-//		}
-//	}
-//	return 0;
-//}
-///*******************************************************************************************************/
-//int8_t clear(char *args[], uint8_t count){	// function clears the terminal window
-//
-//	printf("\nclear\n");
-//	printf("\e[1;1H\e[2J");
-//	return 0;
-//}
-///*******************************************************************************************************/
-//int8_t debug(char *args[], uint8_t count){		// function that is used to turn debug messages on and off
-//	if (count==0)USR_DBG=!USR_DBG;				// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
-//	if (count==1){
-//		if (strcmp(args[1],"on")==0||strcmp(args[1],"ON")==0){	// checks if user entered the command 'debug on (or ON)'
-//			USR_DBG=true;										// if so, turn debug messages on
-//		}else{
-//			USR_DBG=false;										// if user types anything else, ie 'debug off'
-//		}														// switch debug messages off
-//	}
-//	if (USR_DBG)printf("\nDEBUG ON\n");		// print ON or OFF when debug message settings are switched
-//	else printf("\nDEBUG OFF\n");
-//	return 0;
-//}
-///*******************************************************************************************************/
-//int8_t analog(char *args[]){
-//	int number;
-//	if (sizeof(args)>1){
-//		printf("Too many arguments entered. Only one number is necessary.");	// if more than one number is entered return error message.
-//		return -1;
-//	}
-//	if(sizeof(args)==0){
-//		printf("Must enter command followed by a single number.");		// if no numbers are entered return error message
-//		return -1;
-//	}
-//		if (!isNumber(args[0])){						// if input is not a number
-//			printf("Arguments must be real numbers");	// return a message to user that the input was not a number
-//			return -1;
-//		}else{
-//			number=atof(args[0]);					// take the input number that is a string of characters and convert to a double
-//		}
-//		if (number<0){
-//			printf("Argument must be a positive number - time cannot be negative");
-//			return -1;
-//		}
-//	}
-//}
-///*******************************************************************************************************/
-//int8_t ls(uint8_t *args_p[], uint8_t num_count){
-//          FRESULT res;
-//          DIR dir;
-//          UINT i;
-//          static FILINFO fno;
-//          char * path = (args_p[0]!=NULL)?args_p[0]:"";
-//          res = f_opendir(&dir, path);                       /* Open the directory */
-//          if (res == FR_OK) {
-//              for (;;) {
-//                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
-//                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-//                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-//                      i = strlen(path);
-//                      safe_printf("%s/%s\t\t\tDIR\n", path, fno.fname);
-//                  } else {                                       /* It is a file. */
-//                	  safe_printf("%s/%s\t\t%i Bytes\n", path, fno.fname,fno.fsize);
-//                  }
-//              }
-//              f_closedir(&dir);
-//          }
-//          return res;
-//}
-///*******************************************************************************************************/
-//int8_t cd(uint8_t *args_p[]){
-//		FRESULT res;
-//	    DIR dir;
-//	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
-//	    res = f_chdir(path);
-//	    if (res != FR_OK) {
-//	    	safe_printf("Error occurred. Directory not found.\n");
-//	    } 	else {
-//	   		safe_printf("Current folder: %s\n",path);
-//	   	}
-//	    return res;
-//}
-///*******************************************************************************************************/
-//int8_t mkdir(uint8_t *args_p[]){
-//		FRESULT res;
-//		char * path = (args_p[0]!=NULL)?args_p[0]:"";
-//		res = f_mkdir(path);
-//		if (res != FR_OK){
-//			safe_printf("Error occurred. Unable to create directory.\n");
-//		} 	else {
-//	    		safe_printf("New folder: %s\n",path);
-//		}
-//		return res;
-//}
-///*******************************************************************************************************/
-//int8_t cp(uint8_t *args[]){
-//	 FRESULT res;
-//	 DIR dir;
-//	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
-//	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
-//	 res = f_chdir(path_new);
-//	 if (res != FR_OK){
-//		 res = f_rename(path_old, dir);
-//		 if (res != FR_OK){
-//			 safe_printf("Error Occurred. Could not copy file.\n");
-//			 return -1;
-//		 } else {
-//			 safe_printf("New destination not found. File copied to current directory.\n");
-//			 char *file_new = strcat((path_old)2);
-//			 safe_printf("New file: %s\n", file_new);
-//			 return res;
-//		 }
-//	 } else {
-//		 res = f_rename(path_old, path_new);                       /* Open the directory */
-//		 if (res != FR_OK){
-//			 safe_printf("Error Occurred. Could not copy file.\n");
-//			 return -1;
-//		 } else {
-//			 safe_printf("File successfully copied to new folder.\n");
-//			 safe_printf("New File: %s/%s\n", dir, path_new);
-//			 return res;
-//		 }
-//	 }
-//}
-//
-///*******************************************************************************************************/
-//int8_t rm(uint8_t *args[]){
-//	FRESULT res;
-//	DIR dir;
-//	char * path = (args_p[0]!=NULL)?args_p[0]:"";
-//	res = f_unlink (path);
-//	if (res != FR_OK){
-//		safe_printf("Error Occurred. File %s was not deleted successfully.\n", path);
-//		return -1;
-//	} else {
-//		safe_printf("Deleted: %s\n", path);
-//		return res;
-//	}
-//}
-/*********************************************************************************************/
 /* command structure*/
 enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
 #define MAX_PATH_LENGTH 100
@@ -288,6 +60,7 @@ int Command_Function(int arg_count, char **Array_numbers){				// function takes 
 	return 0;
 }
 /*******************************************************************************************************/
+/* function declarations for Q1 */
 int8_t ls(uint8_t *numbers_p[], uint8_t num_count);
 int8_t ls(uint8_t *args_p[], uint8_t args_count);
 int8_t mkdir(uint8_t *args_p[], uint8_t args_count);
@@ -301,16 +74,16 @@ int8_t path(uint8_t *args_p[], uint8_t args_count);
 int8_t rm(uint8_t *args_p[], uint8_t args_count);
 int string_parser (char *inp, char **array_of_words_p[]);
 
-const command_s CommandList[] = {								// structure holding list of commands and their help displays.
-{"analog", 		&analog, 	"Plot the analog input for the given period of time."},
-{"ls", 			&ls, 		"List contents of current folder"},
-{"cd", 			&cd, 		"Change current directory"},
-{"mkdir", 		&mkdir, 	"Create new folder"},
-{"cp", 			&cp, 		"Copy selected file to selected location"},
-{"rm", 			&rm, 		"Deletes selected file"},
-{"debug", 		&debug,		"Turns debug messages on and off"},	// debug messages on or off
-{"help",       	&help,		"Show help messages"},
-{"clear",       &clear,     "clears the terminal"},
+const command_s CommandList[] = {		// structure holding list of commands and their help displays.
+{"analog", 		&analog, 	"Plot the analog input for the given period of time. Input looks like: analog <time>"},	// plots analog input for given time
+{"ls", 			&ls, 		"List contents of current folder"},				// Lists contents of current folder/directory
+{"cd", 			&cd, 		"Change current directory. Input looks like: cd <directory>"},	// Change current directory
+{"mkdir", 		&mkdir, 	"Create new folder. Input looks like: mkdir <directoty>"},		// make new folder/directory
+{"cp", 			&cp, 		"Copy selected file to selected location. Input looks like: cp <file> <directory>"},	// copy file to new location
+{"rm", 			&rm, 		"Deletes selected file. Input looks like: rm <file>"},						// delete selected file
+{"debug", 		&debug,		"Turns debug messages on and off. Input looks like: debug <on>||<off>"},	// debug messages on or off
+{"help",       	&help,		"Show help messages. Input looks like: help <command>"},					// display help message
+{"clear",       &clear,     "clears the terminal"},			// clears terminal and the console
 {NULL, 			NULL, 		NULL}
 };
 
@@ -429,8 +202,8 @@ void myGetLine(char ** buff){
 	}
 	return;
 }
-
-int string_parser(char *inp, char **array_of_words_p[])
+/*******************************************************************************************************/
+int string_parser(char *inp, char **array_of_words_p[])		// string parser function
 {
 	//Check if parsed string is valid, doesn't equal null and is not empty
 	if(inp == NULL || strlen(inp) == 0)
@@ -529,7 +302,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	free(tempstring); //free malloc'd memory
 	return (word_c);  //return word count
 }
-
+/*******************************************************************************************************/
 uint8_t myReadFile()
 {
 #define READ_FILE "Hello.txt"
@@ -590,40 +363,40 @@ uint8_t myWriteFile()
 	return 0;
 }
 /*******************************************************************************************************/
-int8_t ls(uint8_t *args_p[], uint8_t args_count){
-          FRESULT res;
-          DIR dir;
+int8_t ls(uint8_t *args_p[], uint8_t args_count){		// function lists the contents of the current directory
+          FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
+          DIR dir;										// current directory
           UINT i;
           static FILINFO fno;
           char * path = (args_count<0)?args_p[0]:"";
-          res = f_opendir(&dir, path);                       /* Open the directory */
-          if (res == FR_OK) {
+          res = f_opendir(&dir, path);                       	// Open the directory
+          if (res == FR_OK) {									// if open function was successful
               for (;;) {
-                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
-                  if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
-                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                  res = f_readdir(&dir, &fno);                  // Read a directory item
+                  if (res != FR_OK || fno.fname[0] == 0) break; // Break on error or end of dir
+                  if (fno.fattrib & AM_DIR) {                   // if it is a directory
                       i = strlen(path);
                       safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
-                  } else {                                       /* It is a file. */
+                  } else {                                      // if  it is a file.
                 	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
                   }
               }
               f_closedir(&dir);
           }
-          return res;
+          return res;		// return result res = FR_OK = 0 OR res = false
 }
 
 /*******************************************************************************************************/
-int8_t help(uint8_t *args[], uint8_t count){   // help function to display command help messages
+int8_t help(uint8_t *args[], uint8_t count){   	// help function to display command help messages
 	if (USR_DBG)safe_printf("%s\n\r",args[0]);
 	if (count==0){												// when user types 'help' and no command
 			for (int h=0;CommandList[h].Command_string!=NULL;h++){
 			safe_printf("%s\t\t%s\n\r",CommandList[h].Command_string,CommandList[h].Help_s);	// print ALL command help messages
 			}
 		}else{
-		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-			if(strcmp(CommandList[i].Command_string,args[0])==0){
-				safe_printf("\%s\n\r",CommandList[i].Help_s);
+		for (int i=0;CommandList[i].Command_string!=NULL;i++){
+			if(strcmp(CommandList[i].Command_string,args[0])==0){	// compare argument to the list of commands
+				safe_printf("\%s\n\r",CommandList[i].Help_s);		// print the help message linked with the command in the structure
 			}
 		}
 	}
@@ -639,20 +412,20 @@ bool isNumber(char * str){												// checks input against ascii table
 			return false;
 		}
 	}
-	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));
+	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));	// print debug message
 	return true;
 }
 /*******************************************************************************************************/
 int8_t clear(uint8_t *args[], uint8_t count){	// function clears the terminal window
 
-	printf("\n\rclear\n\r");
-	printf("\e[1;1H\e[2J");
+	printf("\n\rclear\n\r");	// clears terminal
+	printf("\e[1;1H\e[2J");		// clears console
 	return 0;
 }
 
 /*******************************************************************************************************/
 int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn debug messages on and off
-	if (count==0)USR_DBG=!USR_DBG;				// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
+	if (count==0)USR_DBG=!USR_DBG;					// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
 	if (count==1){
 		if (strcmp(args[1],"on")==0||strcmp(args[1],"ON")==0){	// checks if user entered the command 'debug on (or ON)'
 			USR_DBG=true;										// if so, turn debug messages on
@@ -665,7 +438,7 @@ int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn 
 	return 0;
 }
 /*******************************************************************************************************/
-int8_t analog(uint8_t *args_p[],uint8_t args_count){
+int8_t analog(uint8_t *args_p[],uint8_t args_count){	// plot the analog input data on the touch panel for a given time step
 	int number;
 	if (sizeof(args_count)>1){
 		printf("Too many arguments entered. Only one number is necessary.");	// if more than one number is entered return error message.
@@ -681,8 +454,8 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){
 		}else{
 			number=atof(args_p[0]);					// take the input number that is a string of characters and convert to a double
 		}
-		if (number<0){
-			printf("Argument must be a positive number - time cannot be negative");
+		if (number<0){								// if the input number is negative
+			printf("Argument must be a positive number - time cannot be negative");	// print error - time must be a positive number
 			return -1;
 		}
 	}
