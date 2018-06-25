@@ -84,19 +84,19 @@ bool is_pressed(struct button B,Coordinate *point){
 }
 
 void Start(void){
-	safe_printf("Start button\n");
+	safe_printf("Start button\n\r");
 	return;
 }
 void Stop(void){
-	safe_printf("Stop button\n");
+	safe_printf("Stop button\n\r");
 	return;
 }
 void Load(void){
-	safe_printf("Load button\n");
+	safe_printf("Load button\n\r");
 	return;
 }
 void Store(void){
-	safe_printf("Store button\n");
+	safe_printf("Store button\n\r");
 	return;
 }
 
@@ -121,7 +121,7 @@ void Ass_03_Task_02(void const * argument)
 	Coordinate display;
 
 	osSignalWait(1,osWaitForever);
-	safe_printf("Hello from Task 2 - Pulse Rate Application (touch screen input)\n");
+	safe_printf("Hello from Task 2 - Pulse Rate Application (touch screen input)\n\r");
 
 	for (int i=0;buttons[i].handler!=NULL;i++){
 		  button_show(buttons[i]);
@@ -142,7 +142,7 @@ while (1)
 			BSP_LCD_FillCircle(display.x, display.y, 2);
 			osMutexRelease(myMutex01Handle);
 			loop++;
-			safe_printf("Task 2: %d (got  %3d,%3d)\n", loop, display.x, display.y);
+			safe_printf("Task 2: %d (got  %3d,%3d)\n\r", loop, display.x, display.y);
 		}
 
 

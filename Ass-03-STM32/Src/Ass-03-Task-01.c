@@ -256,7 +256,7 @@ int string_parser (char *inp, char **array_of_words_p[]) {
 /*********************************************************************************************/
 /* command structure*/
 enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
-
+#define MAX_PATH_LENGTH 100
 typedef struct{
 int8_t *Command_string; 											// Command string
 int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
@@ -317,7 +317,6 @@ const command_s CommandList[] = {								// structure holding list of commands a
 
 int Command_Function(int args_count, char **Array_numbers[]){				// function takes input from user and compares the command with list of commands
 	char **Args;
-	safe_printf("%s\n",Array_numbers[0]);						// each command references a particular function (add, multiply, etc.)
 	if (args_count>1) Args = &Array_numbers[1];
 	for (int i=0;CommandList[i].Command_string!=NULL;i++){
 		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list			// implemented debug messages
@@ -347,9 +346,10 @@ void Ass_03_Task_01(void const * argument)
 	char * buff;
 	char ** words;
 	char count;
-  safe_printf("Hello from Task 1 - Console (serial input)\n");
-  safe_printf("INFO: Initialise LCD and TP first...\n");
-
+	char workingdir[MAX_PATH_LENGTH];
+	safe_printf("Hello from Task 1 - Console (serial input)\n\r");
+	safe_printf("INFO: Initialise LCD and TP first...\n\r");
+	FRESULT Result;
   // STEPIEN: Initialize and turn on LCD and calibrate the touch panel
   BSP_LCD_Init();
   BSP_LCD_DisplayOn();
@@ -370,41 +370,63 @@ void Ass_03_Task_01(void const * argument)
   myWriteFile();
   while (1)
   {
-		buff = malloc(2*sizeof(char));
-		if (buff == NULL) printf("error allocating mememory\n");
-		int i=0;
-		char c=0;
-		for (i=0;!(c==CR || c==LF);i++){
-			buff = realloc(buff,(i+1)*sizeof(char));
-			c=getchar();
-			buff[i] = ((c==CR || c==LF))?'\0':c;
-			safe_printf("%c",buff[i]);
-			HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
+  buff = malloc(2*sizeof(char));
+	if (buff == NULL){
+		safe_printf("ERROR ALLOCATING MEMORY\n\r");
+		return;
+	}
+	int i=0;
+	char c=0;
+	Result = f_getcwd(workingdir, MAX_PATH_LENGTH);
+	if (Result == FR_OK){
+		safe_printf("\n\r%s>",workingdir);
+	}else{
+		safe_printf("\n\r>");
+	}
+	for (i=0;!(c==CR || c==LF);i++){
+		buff = realloc(buff,(i+1)*sizeof(char));
+		c=getchar();
+		if (c==BS){
+			buff[--i]='\0';
+			i--;
+			safe_printf("%c %c",BS,BS);
+			continue;
 		}
-		count = string_parser (buff, &words);
-		Command_Function(count, words);
-		free(buff);
+		buff[i] = ((c==CR || c==LF))?'\0':c;
+		safe_printf("%c",buff[i]);
+		HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
+	}
+	safe_printf("\n\r");
+	count = string_parser (buff, &words);
+	if (count>0)Command_Function(count, words);
+	free(buff);
+	free(words);
   }
 
 }
 
-void myGetLine(char * buff_out[]){
-	char *buff = malloc(2*sizeof(char));
+void myGetLine(char ** buff){
+	buff = malloc(sizeof(char*));
+	buff = malloc(2*sizeof(char));
 	if (buff == NULL){
-		safe_printf("ERROR ALLOCATING MEMORY\n");
+		safe_printf("ERROR ALLOCATING MEMORY\n\r");
 		return;
 	}
 
 	int i=0;
 	char c=0;
 	for (i=0;!(c==CR || c==LF);i++){
-		buff = realloc(buff,(i+1)*sizeof(char));
+		*buff = realloc(*buff,(i+1)*sizeof(char));
 		c=getchar();
-		buff[i] = ((c==CR || c==LF))?'\0':c;
-		safe_printf("%c\n",buff[i]);
+		if (c==BS){
+			*buff[i]='\0';
+			i--;
+			continue;
+		}
+		*buff[i] = ((c==CR || c==LF))?'\0':c;
+		safe_printf("%c",*buff[i]);
 		HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
 	}
-	*buff_out = buff;
 	return;
 }
 
@@ -413,7 +435,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	//Check if parsed string is valid, doesn't equal null and is not empty
 	if(inp == NULL || strlen(inp) == 0)
 	{
-		safe_printf("ERROR - NULL String \n");
+		safe_printf("ERROR - NULL String \n\r");
 		return -1;
 	}
 	//Count number of words by increasing word_c each time a space character  is reached after a normal character
@@ -423,9 +445,9 @@ int string_parser(char *inp, char **array_of_words_p[])
 	{
 		i++;
 	}
-	while('\0' != inp[i] && '\n' != inp[i])
+	while('\0' != inp[i] && '\n\r' != inp[i])
 	{
-		if (inp[i] == ' ' && inp[i+1] != ' ' && inp[i+1] != '\0' && inp[i+1] != '\n')
+		if (inp[i] == ' ' && inp[i+1] != ' ' && inp[i+1] != '\0' && inp[i+1] != '\n\r')
 		{
 			word_c ++;
 		}
@@ -436,7 +458,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	array_of_words = (char**) malloc(word_c*sizeof(char*));
 	if(array_of_words == NULL)
 	{
-		safe_printf("ERROR - error in Malloc 5\n");
+		safe_printf("ERROR - error in Malloc 5\n\r");
 		return 0;
 	}
 	/*
@@ -462,7 +484,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		}
 		//count number of characters in the word
 		i = word_start;
-		while(inp[i] != ' ' && inp[i] != '\0' && inp[i] != '\n')
+		while(inp[i] != ' ' && inp[i] != '\0' && inp[i] != '\n\r')
 		{
 			character_c ++;
 			i++;
@@ -472,7 +494,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		temp_pointer = (char*) realloc(tempstring,(character_c+1)*sizeof(char));
 		if(temp_pointer == NULL)
 		{
-			safe_printf("ERROR - error in Malloc 6\n");
+			safe_printf("ERROR - error in Malloc 6\n\r");
 			return 0;
 		}
 		tempstring = temp_pointer;
@@ -492,7 +514,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		array_of_words[p] = (char*) malloc(sizeof(char)*(strlen(tempstring)+1));
 		if(array_of_words[p] == NULL)
 		{
-			safe_printf("ERROR - error in Malloc 7\n");
+			safe_printf("ERROR - error in Malloc 7\n\r");
 			return 0;
 		}
 		strcpy(array_of_words[p], tempstring);
@@ -508,8 +530,6 @@ int string_parser(char *inp, char **array_of_words_p[])
 	return (word_c);  //return word count
 }
 
-
-
 uint8_t myReadFile()
 {
 #define READ_FILE "Hello.txt"
@@ -521,20 +541,20 @@ uint8_t myReadFile()
 	// Open file Hello.txt
 	if((res = f_open(&MyFile, READ_FILE, FA_READ)) != FR_OK)
 	{
-		safe_printf("ERROR: Opening '%s'\n", READ_FILE);
+		safe_printf("ERROR: Opening '%s'\n\r", READ_FILE);
 		return 1;
 	}
-	safe_printf("Task 1: Opened file '%s'\n", READ_FILE);
+	safe_printf("Task 1: Opened file '%s'\n\r", READ_FILE);
 
 	// Read data from file
 	if ((res = f_read(&MyFile, rtext, BUFF_SIZE-1, &bytesread)) != FR_OK)
 	{
-		safe_printf("ERROR: Reading '%s'\n", READ_FILE);
+		safe_printf("ERROR: Reading '%s'\n\r", READ_FILE);
 		f_close(&MyFile);
 		return 1;
 	}
 	rtext[bytesread] = '\0';
-	safe_printf("Task 1: Read: '%s'\n", rtext);
+	safe_printf("Task 1: Read: '%s'\n\r", rtext);
 
 	// Close file
 	f_close(&MyFile);
@@ -551,24 +571,22 @@ uint8_t myWriteFile()
 	// Open file There.txt
 	if((res = f_open(&MyFile, WRITE_FILE, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 	{
-		safe_printf("ERROR: Opening '%s'\n", WRITE_FILE);
+		safe_printf("ERROR: Opening '%s'\n\r", WRITE_FILE);
 		return 1;
 	}
-	safe_printf("Task 1: Opened file '%s'\n", WRITE_FILE);
+	safe_printf("Task 1: Opened file '%s'\n\r", WRITE_FILE);
 
 	// Write to file
 	if ((res = f_write(&MyFile, "Hello", 6, &byteswritten)) != FR_OK)
 	{
-		safe_printf("ERROR: Writing '%s'\n", WRITE_FILE);
+		safe_printf("ERROR: Writing '%s'\n\r", WRITE_FILE);
 		f_close(&MyFile);
 		return 1;
 	}
-	safe_printf("Task 1: Written: %d bytes\n", byteswritten);
+	safe_printf("Task 1: Written: %d bytes\n\r", byteswritten);
 
 	// Close file
 	f_close(&MyFile);
-
-
 	return 0;
 }
 /*******************************************************************************************************/
@@ -585,9 +603,9 @@ int8_t ls(uint8_t *args_p[], uint8_t args_count){
                   if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
                   if (fno.fattrib & AM_DIR) {                    /* It is a directory */
                       i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n\n", path, fno.fname);
+                      safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
                   } else {                                       /* It is a file. */
-                	  safe_printf("%s\t\t%i Bytes\n\n", fno.fname,fno.fsize);
+                	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
                   }
               }
               f_closedir(&dir);
@@ -597,101 +615,37 @@ int8_t ls(uint8_t *args_p[], uint8_t args_count){
 
 /*******************************************************************************************************/
 int8_t help(uint8_t *args[], uint8_t count){   // help function to display command help messages
-	if (USR_DBG)safe_printf("%s\n",args[0]);
-	for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
-
-		if(strcmp(CommandList[i].Command_string,args[0])==0){
-			safe_printf("\%s\n",CommandList[i].Help_s);
-		}
-		if (count==0){												// when user types 'help' and no command
+	if (USR_DBG)safe_printf("%s\n\r",args[0]);
+	if (count==0){												// when user types 'help' and no command
 			for (int h=0;CommandList[h].Command_string!=NULL;h++){
-			safe_printf("\%s\n",CommandList[h].Help_s);	// print ALL command help messages
+			safe_printf("%s\t\t%s\n\r",CommandList[h].Command_string,CommandList[h].Help_s);	// print ALL command help messages
+			}
+		}else{
+		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
+			if(strcmp(CommandList[i].Command_string,args[0])==0){
+				safe_printf("\%s\n\r",CommandList[i].Help_s);
 			}
 		}
 	}
-	return 0;
+return 0;
 }
 
-/*******************************************************************************************************/
-//int string_parser (char *inp, char **array_of_words_p[]) {
-//	int word_count=0;								// counts amount of input strings
-//	int j = 0;										// counts number of characters in each string
-//	int input_lenght = strlen (inp);
-//	if (input_lenght == 0) { return 0; }			// end if the input was empty
-//	char** array_of_words;							// pointer to array of input strings
-//	array_of_words = (char**)malloc(sizeof( *array_of_words) * input_lenght);	// allocate memory for array of strings
-//	array_of_words[word_count] = (char*)malloc(input_lenght);					// allocate memory for each individual string in the input string
-//
-//	if (*array_of_words){
-//		for (int i = 0; inp[i] != NULL; i++) {				// for loop that goes through each character of the input and checks it
-//			if (inp[i]!=' ') {								// if the input character is not a space
-//				array_of_words[word_count][j] = inp[i];		// element j of the current string = the input character
-//				j++;										// increase word letter counter by 1
-//			}
-//			else if (j>0) {									// if input character is a space
-//				array_of_words[word_count][j] = '\0';		// end the string with a NULL
-//				array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1); // allocate memory for the NULL
-//				if (!array_of_words[word_count]) {
-//					printf ("Error in String Passer\nerror reallocating memory"); 	// print error if error occurred allocating memory
-//					return -1;
-//				}
-//				word_count++;												// increase the word counter by 1
-//				array_of_words[word_count] = (char*)malloc (input_lenght);	// allocate memory for string
-//				j = 0;
-//
-//			}else{
-//				j=0;
-//				continue;
-//			}
-//
-//		array_of_words[word_count][j] = '\0';												// end string with NULL
-//		array_of_words[word_count] = (char*)realloc (array_of_words[word_count], j + 1); 	// allocate memory for the NULL
-//
-//		if (!array_of_words[word_count]) {
-//			printf ("Error in String Passer\nerror reallocating memory");	// print error if memory allocation failed
-//			return -1;
-//		}
-//		word_count++;													// increase word count by 1
-//		array_of_words[word_count] = (char*)malloc (input_lenght);		// allocate memory for size of input string
-//		j = 0;
-//		}
-//
-//		if(j>0){
-//			array_of_words[word_count][j] = '\0';
-//							array_of_words[word_count] = (char*)realloc(array_of_words[word_count],j+1);
-//							if (!array_of_words[word_count]) {
-//								printf ("Error in String Passer\nerror reallocsting memmory");
-//								return -1;
-//							}
-//							word_count++;
-//							array_of_words[word_count] = (char*)malloc (input_lenght);
-//							j = 0;
-//		}
-//	}
-//	else {
-//		printf ("Error in String Passer\nerror allocating memory");		// print error message if memory allocation failed
-//		return -1;
-//	}
-//	array_of_words = (char**)realloc (array_of_words, sizeof (*array_of_words) * word_count); // allocate memory for size of array of strings
-//	*array_of_words_p = array_of_words;							// pointer to array of words
-//	if (USR_DBG)printf ("WordCount = %d\n", word_count);		// debug messages
-//	return word_count;
-//}
+
 /*******************************************************************************************************/
 bool isNumber(char * str){												// checks input against ascii table
 	for (int i=0;i<strlen(str);i++){									// makes sure input is a number
 		if ( (str[i] < 48 || str[i] >57)&&!(str[i]==45||str[i]==46) ){
-			if (USR_DBG)printf("is not a number\n");					// print debug messages
+			if (USR_DBG)printf("is not a number\n\r");					// print debug messages
 			return false;
 		}
 	}
-	if (USR_DBG)printf("\n|%s|string is |%lf|double\n",str,atof(str));
+	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));
 	return true;
 }
 /*******************************************************************************************************/
 int8_t clear(uint8_t *args[], uint8_t count){	// function clears the terminal window
 
-	printf("\nclear\n");
+	printf("\n\rclear\n\r");
 	printf("\e[1;1H\e[2J");
 	return 0;
 }
@@ -706,8 +660,8 @@ int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn 
 			USR_DBG=false;										// if user types anything else, ie 'debug off'
 		}														// switch debug messages off
 	}
-	if (USR_DBG)printf("\nDEBUG ON\n");		// print ON or OFF when debug message settings are switched
-	else printf("\nDEBUG OFF\n");
+	if (USR_DBG)printf("\n\rDEBUG ON\n\r");		// print ON or OFF when debug message settings are switched
+	else printf("\n\rDEBUG OFF\n\r");
 	return 0;
 }
 /*******************************************************************************************************/
@@ -738,12 +692,13 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){
 int8_t cd(uint8_t *args_p[],uint8_t args_count){
 		FRESULT res;
 	    DIR dir;
-	    char * path = (args_p[0]!=NULL)?&args_p[0]:"";
+	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
+
 	    res = f_chdir(path);
 	    if (res != FR_OK) {
-	    	safe_printf("Error occurred. Directory not found.\n");
+	    	safe_printf("Error occurred. Directory not found.\n\r");
 	    } 	else {
-	   		safe_printf("%s\n",path);
+	   		safe_printf("%s\n\r",path);
 	   	}
 	    return res;
 }
@@ -753,9 +708,9 @@ int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
 		char * path = (args_p[0]!=NULL)?args_p[0]:"";
 		res = f_mkdir(path);
 		if (res != FR_OK){
-			safe_printf("Error occurred. Unable to create directory.\n");
+			safe_printf("Error occurred. Unable to create directory.\n\r");
 		} 	else {
-	    		safe_printf("%s\n",path);
+	    		safe_printf("Folder Created: %s\n\r",path);
 		}
 		return res;
 }
@@ -765,38 +720,32 @@ int8_t cp(uint8_t *args_p[],uint8_t args_count){
 	 DIR dir;
 	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
 	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
-	 res = f_chdir(path_new);
-	 if (res != FR_OK){
 		 res = f_rename(path_old, path_new);
 		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy file.");
+			 safe_printf("Error Occurred. Could not copy %s to %s.", path_old, path_new);
 			 return -1;
 		 } else {
-			 safe_printf("New destination not found. File copied to current directory.");
+			 safe_printf("%s -> %s",path_old,path_new);
 			 return res;
 		 }
-		 return res;
-	 } else {
-		 res = f_rename(path_old, path_new);                       /* Open the directory */
-		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy file.");
-			 return -1;
-		 } else {
-			 safe_printf("File successfully copied to new folder.");
-			 return res;
-		 }
-	 }
 }
 
 /*******************************************************************************************************/
 int8_t rm(uint8_t *args_p[],uint8_t args_count){
 	FRESULT res;
-	          DIR dir;
-	          UINT i;
-	          static FILINFO fno;
-	          char * path = (args_p[0]!=NULL)?args_p[0]:"";
-
-	f_unlink (args_p[0]);
+	char * path = (args_p[0]!=NULL)?args_p[0]:"";
+	res = f_stat(path);
+	if (res == FR_INVALID_NAME){
+		safe_printf("%s does not exist\n\r",path);
+		return 0;
+	}
+	res = f_unlink (args_p[0]);
+	if (res==FR_OK){
+		safe_printf("successfuly removed %s", path);
+	}else{
+		safe_printf("could not removed %s", path);
+	}
+	return 0;
 }
 /*******************************************************************************************************/
 
