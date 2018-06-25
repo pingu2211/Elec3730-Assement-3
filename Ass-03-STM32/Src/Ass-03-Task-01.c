@@ -24,41 +24,6 @@ int false = 0;
 int true = !0;
 int count = 0;
 bool USR_DBG = false;
-
-/*******************************************************************************************************/
-/* command structure*/
-enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
-#define MAX_PATH_LENGTH 100
-typedef struct{
-int8_t *Command_string; 											// Command string
-int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
-int8_t *Help_s; 													// Help information
-} command_s;
-
-const command_s CommandList[] = {								// structure holding list of commands and their help displays.
-{"analog", 		&analog, 	"Plot the analog input for the given period of time."},
-{"ls", 			&ls, 		"List contents of current folder"},
-{"cd", 			&cd, 		"Change current directory"},
-{"mkdir", 		&mkdir, 	"Create new folder"},
-{"cp", 			&cp, 		"Copy selected file to selected location"},
-{"rm", 			&rm, 		"Deletes selected file"},
-{"debug", 		&debug,		"Turns debug messages on and off"},	// debug messages on or off
-{"help",       	&help,		"Show help messages"},
-{"clear",       &clear,     "clears the terminal"},
-{NULL, 			NULL, 		NULL}
-};
-/*******************************************************************************************************/
-int Command_Function(int arg_count, char **Array_numbers){				// function takes input from user and compares the command with list of commands
-	if (USR_DBG)printf("%s\n",Array_numbers[0]);						// each command references a particular function (add, multiply, etc.)
-	char **Args = &Array_numbers[1];
-	for (int i=0;CommandList[i].Command_string!=NULL;i++){
-		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list
-			if (USR_DBG)printf("first arg = %s\n",Args[0]);				// implemented debug messages
-			CommandList[i].Function_p(Args,arg_count-1);				// reference to function the user has entered.
-		}
-	}
-	return 0;
-}
 /*******************************************************************************************************/
 /* function declarations for Q1 */
 int8_t ls(uint8_t *numbers_p[], uint8_t num_count);
@@ -73,6 +38,15 @@ int8_t help(uint8_t *args_p[], uint8_t args_count);
 int8_t path(uint8_t *args_p[], uint8_t args_count);
 int8_t rm(uint8_t *args_p[], uint8_t args_count);
 int string_parser (char *inp, char **array_of_words_p[]);
+/*******************************************************************************************************/
+/* command structure*/
+enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
+#define MAX_PATH_LENGTH 100
+typedef struct{
+int8_t *Command_string; 											// Command string
+int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
+int8_t *Help_s; 													// Help information
+} command_s;
 
 const command_s CommandList[] = {		// structure holding list of commands and their help displays.
 {"analog", 		&analog, 	"Plot the analog input for the given period of time. Input looks like: analog <time>"},	// plots analog input for given time
@@ -86,15 +60,14 @@ const command_s CommandList[] = {		// structure holding list of commands and the
 {"clear",       &clear,     "clears the terminal"},			// clears terminal and the console
 {NULL, 			NULL, 		NULL}
 };
-
-
+/*******************************************************************************************************/
 int Command_Function(int args_count, char **Array_numbers[]){				// function takes input from user and compares the command with list of commands
 	char **Args;
 	if (args_count>1) Args = &Array_numbers[1];
 	for (int i=0;CommandList[i].Command_string!=NULL;i++){
 		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list			// implemented debug messages
 
-			CommandList[i].Function_p(Args,num_count-1);				// reference to function the user has entered.
+			// CommandList[i].Function_p(Args,num_count-1);				// reference to function the user has entered.
 
 			CommandList[i].Function_p(Args,args_count-1);				// reference to function the user has entered.
 
@@ -102,7 +75,18 @@ int Command_Function(int args_count, char **Array_numbers[]){				// function tak
 	}
 	return 0;
 }
-
+/*******************************************************************************************************/
+//int Command_Function(int arg_count, char **Array_numbers){				// function takes input from user and compares the command with list of commands
+//	if (USR_DBG)printf("%s\n",Array_numbers[0]);						// each command references a particular function (add, multiply, etc.)
+//	char **Args = &Array_numbers[1];
+//	for (int i=0;CommandList[i].Command_string!=NULL;i++){
+//		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list
+//			if (USR_DBG)printf("first arg = %s\n",Args[0]);				// implemented debug messages
+//			CommandList[i].Function_p(Args,arg_count-1);				// reference to function the user has entered.
+//		}
+//	}
+//	return 0;
+//}
 /*******************************************************************************************************/
 void Ass_03_Task_01(void const * argument)
 {
@@ -493,7 +477,7 @@ int8_t cp(uint8_t *args_p[],uint8_t args_count){		// function copies a selected 
 	 char * new_name;
 	 res = f_stat(path_new);
 	 if (res != FR_OK){
-		 new_name = strcat((path_old)2);
+		 new_name = strcat(path_old,(path_old)2);
 		 res = frename(path_old,new_name);
 		 if (res != FR_OK){
 			 safe_printf("Error Occurred. Could not copy file.");
