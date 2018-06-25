@@ -362,29 +362,6 @@ uint8_t myWriteFile()
 	f_close(&MyFile);
 	return 0;
 }
-/*******************************************************************************************************/
-int8_t ls(uint8_t *args_p[], uint8_t args_count){		// function lists the contents of the current directory
-          FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
-          DIR dir;										// current directory
-          UINT i;
-          static FILINFO fno;
-          char * path = (args_count<0)?args_p[0]:"";
-          res = f_opendir(&dir, path);                       	// Open the directory
-          if (res == FR_OK) {									// if open function was successful
-              for (;;) {
-                  res = f_readdir(&dir, &fno);                  // Read a directory item
-                  if (res != FR_OK || fno.fname[0] == 0) break; // Break on error or end of dir
-                  if (fno.fattrib & AM_DIR) {                   // if it is a directory
-                      i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
-                  } else {                                      // if  it is a file.
-                	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
-                  }
-              }
-              f_closedir(&dir);
-          }
-          return res;		// return result res = FR_OK = 0 OR res = false
-}
 
 /*******************************************************************************************************/
 int8_t help(uint8_t *args[], uint8_t count){   	// help function to display command help messages
@@ -458,66 +435,108 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){	// plot the analog input da
 			printf("Argument must be a positive number - time cannot be negative");	// print error - time must be a positive number
 			return -1;
 		}
-	}
-/*******************************************************************************************************/
 
+}
 /*******************************************************************************************************/
-int8_t cd(uint8_t *args_p[],uint8_t args_count){
-		FRESULT res;
-	    DIR dir;
-	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
-
-	    res = f_chdir(path);
-	    if (res != FR_OK) {
-	    	safe_printf("Error occurred. Directory not found.\n\r");
-	    } 	else {
-	   		safe_printf("%s\n\r",path);
+int8_t ls(uint8_t *args_p[], uint8_t args_count){		// function lists the contents of the current directory
+          FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
+          DIR dir;										// current directory
+          UINT i;
+          static FILINFO fno;
+          char * path = (args_count<0)?args_p[0]:"";			// pointer to path entered by user
+          res = f_opendir(&dir, path);                       	// Open the directory
+          if (res == FR_OK) {									// if open function was successful
+              for (;;) {
+                  res = f_readdir(&dir, &fno);                  // Read a directory item
+                  if (res != FR_OK || fno.fname[0] == 0) break; // Break on error or end of dir
+                  if (fno.fattrib & AM_DIR) {                   // if it is a directory
+                      i = strlen(path);
+                      safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
+                  } else {                                      // if  it is a file.
+                	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
+                  }
+              }
+              f_closedir(&dir);
+          }
+          return res;		// return result res = FR_OK = 0 OR res = false
+}
+/*******************************************************************************************************/
+int8_t cd(uint8_t *args_p[],uint8_t args_count){						// function changes the current directory to a new directory entered by the user
+		FRESULT res;													// result of FATfs functions -> FR_OK = 0 = success
+	    char * path = (args_p[0]!=NULL)?args_p[0]:"";					// pointer to path entered by the user
+	    res = f_chdir(path);											// FATfs function that changes current directory
+	    if (res != FR_OK) {												// if function was not successful
+	    	safe_printf("Error occurred. Directory not found.\n\r");	// print error
+	    } 	else {														// if function was successful
+	   		safe_printf("%s>\n\r",path);								// print the new directory name
 	   	}
 	    return res;
 }
 /*******************************************************************************************************/
-int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
-		FRESULT res;
-		char * path = (args_p[0]!=NULL)?args_p[0]:"";
-		res = f_mkdir(path);
-		if (res != FR_OK){
-			safe_printf("Error occurred. Unable to create directory.\n\r");
-		} 	else {
-	    		safe_printf("Folder Created: %s\n\r",path);
+int8_t mkdir(uint8_t *args_p[],uint8_t args_count){			// function creates new folder/directory
+		FRESULT res;										// result of FATfs functions -> FR_OK = 0 = success
+		char * path = (args_p[0]!=NULL)?args_p[0]:"";		// pointer to path entered by the user
+		res = f_mkdir(path);								// FATfs function creates new folder
+		if (res != FR_OK){									// if function was not successful
+			safe_printf("Error occurred. Unable to create directory.\n\r");	// print error
+		} 	else {											// if function was successful
+	    		safe_printf("New Folder: %s\n\r",path);		// print new folder name
 		}
 		return res;
 }
 /*******************************************************************************************************/
-int8_t cp(uint8_t *args_p[],uint8_t args_count){
-	 FRESULT res;
+int8_t cp(uint8_t *args_p[],uint8_t args_count){		// function copies a selected file to a selected location
+	 FRESULT res;										// result of FATfs functions -> FR_OK = 0 = success
 	 DIR dir;
-	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";
-	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";
-		 res = f_rename(path_old, path_new);
+	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";	// pointer to old path
+	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";	// pointer to new path
+	 char * new_name;
+	 res = f_stat(path_new);
+	 if (res != FR_OK){
+		 new_name = strcat((path_old)2);
+		 res = frename(path_old,new_name);
 		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy %s to %s.", path_old, path_new);
+			 safe_printf("Error Occurred. Could not copy file.");
 			 return -1;
 		 } else {
-			 safe_printf("%s -> %s",path_old,path_new);
+			 safe_printf("Destination could not be found. File %s copied to current directory.\n\r New File: %s\n\r", path_old, new_name);
 			 return res;
 		 }
+	 }else {
+		 res = f_rename(path_old, path_new);			// FATfs function copies file to location
+		 if (res != FR_OK){								// if copy was not successful
+			 safe_printf("Error Occurred. Could not copy %s to %s.\n\r", path_old, path_new);
+			 return -1;
+		 } else {
+			 safe_printf("File %s copied to %s\n\r",path_old, path_new);
+			 return res;
+		 }
+
+	}
+	return 0;
 }
 
 /*******************************************************************************************************/
-int8_t rm(uint8_t *args_p[],uint8_t args_count){
-	FRESULT res;
-	char * path = (args_p[0]!=NULL)?args_p[0]:"";
-	res = f_stat(path);
-	if (res == FR_INVALID_NAME){
-		safe_printf("%s does not exist\n\r",path);
-		return 0;
+int8_t rm(uint8_t *args_p[],uint8_t args_count){	// function deletes a selected file
+	FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
+	char * path = (args_p[0]!=NULL)?args_p[0]:"";	// pointer to path entered by the user
+	res = f_stat(path);								// FATfs function checks if the file exists
+	if (res == FR_INVALID_NAME){					// if invalid name is entered
+		safe_printf("%s does not exist\n\r",path);	// print error
+		return -1;
+	} else {
+		if (res == FR_OK){							// if file exists
+			res = f_unlink (path);					// FATfs function deletes a file
+				if (res==FR_OK){					// if function successful
+					safe_printf("%s deleted.\n\r", path);	// print deleted file
+					return res;
+				}else{										// if unsuccessfully deleted
+					safe_printf("%s could not be deleted.\n\r", path);	// print error
+					return -1;
+				}
+		}
 	}
-	res = f_unlink (args_p[0]);
-	if (res==FR_OK){
-		safe_printf("successfuly removed %s", path);
-	}else{
-		safe_printf("could not removed %s", path);
-	}
+
 	return 0;
 }
 /*******************************************************************************************************/
