@@ -24,6 +24,7 @@ bool USR_DBG = false;
 
 enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
 #define MAX_PATH_LENGTH 100
+#define TABSTOP 8
 typedef struct{
 int8_t *Command_string; 											// Command string
 int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
@@ -40,6 +41,7 @@ int8_t debug(uint8_t *args_p[], uint8_t args_count);
 int8_t help(uint8_t *args_p[], uint8_t args_count);
 int8_t path(uint8_t *args_p[], uint8_t args_count);
 int8_t rm(uint8_t *args_p[], uint8_t args_count);
+bool validPath(char * path);
 int string_parser (char *inp, char **array_of_words_p[]);
 
 const command_s CommandList[] = {								// structure holding list of commands and their help displays.
@@ -329,7 +331,7 @@ uint8_t myWriteFile()
 int8_t ls(uint8_t *args_p[], uint8_t args_count){
           FRESULT res;
           DIR dir;
-          UINT i;
+          uint8_t pathlen,namelen;
           static FILINFO fno;
           char * path = (args_count<0)?args_p[0]:"";
           res = f_opendir(&dir, path);                       /* Open the directory */
@@ -337,11 +339,16 @@ int8_t ls(uint8_t *args_p[], uint8_t args_count){
               for (;;) {
                   res = f_readdir(&dir, &fno);                   /* Read a directory item */
                   if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+                  pathlen = strlen(path);
+                  namelen = strlen(fno.fname);
+                  safe_printf("%s",fno.fname);
+                  for (int t=0;t < 5-(namelen/TABSTOP);t++){
+                	  safe_printf("\t");
+                  }
                   if (fno.fattrib & AM_DIR) {                    /* It is a directory */
-                      i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
+                      safe_printf("(DIR)\n\r");
                   } else {                                       /* It is a file. */
-                	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
+                	  safe_printf("(%i Bytes)\n\r",fno.fsize);
                   }
               }
               f_closedir(&dir);
@@ -442,6 +449,10 @@ int8_t cd(uint8_t *args_p[],uint8_t args_count){
 int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
 		FRESULT res;
 		char * path = (args_p[0]!=NULL)?args_p[0]:"";
+		if (!validPath(path)){
+			safe_printf("Invalid Folder Name, folders cannot contain ,.'\"~`!@^*|\\");
+			return 0;
+		}
 		res = f_mkdir(path);
 		if (res != FR_OK){
 			safe_printf("Error occurred. Unable to create directory.\n\r");
@@ -469,8 +480,9 @@ int8_t cp(uint8_t *args_p[],uint8_t args_count){
 /*******************************************************************************************************/
 int8_t rm(uint8_t *args_p[],uint8_t args_count){
 	FRESULT res;
+	FILINFO * info;
 	char * path = (args_p[0]!=NULL)?args_p[0]:"";
-	res = f_stat(path);
+	res = f_stat(path,info);
 	if (res == FR_INVALID_NAME){
 		safe_printf("%s does not exist\n\r",path);
 		return 0;
@@ -484,3 +496,36 @@ int8_t rm(uint8_t *args_p[],uint8_t args_count){
 	return 0;
 }
 /*******************************************************************************************************/
+
+bool validPath(char * path){
+	char * invalidchars= ",.'\"~`!@^*|\\";
+	for (int i=0; i < strlen(invalidchars);i++){
+		if (strchr(path,invalidchars[i]))return false;
+	}
+	return true;
+}
+
+void F_ErrorIterp(FRESULT code){
+	if (code == FR_OK){safe_printf("The function succeeded.");}
+	else if (code == FR_DISK_ERR){safe_printf("The lower layer, disk_read, disk_write or disk_ioctl function, reported that an unrecoverable hard error occured.");}
+	else if (code == FR_INT_ERR ){safe_printf("Assertion failed. An insanity is detected in the internal process. One of the following possibilities is suspected.\n\rWork area (file system object, file object or etc...) has been broken by stack overflow or any other tasks. This is the reason in most case.\nThere is an error of the FAT structure on the volume.\n\rThere is a bug in the FatFs module itself.\n\rWrong lower layer implementation.");}
+	else if (code == FR_NOT_READY){safe_printf("The lower layer, disk_initialize function, reported that the storage device could not be got ready to work. One of the following possibilities is suspected.\n\rNo medium in the drive.\n\rWrong lower layer implementation.\n\rWrong hardware configuration.\n\rThe storage device has been broken.");}
+	else if (code == FR_NO_FILE){safe_printf("Could not find the file.");}
+
+
+	FR_NO_PATH "Could not find the path."
+	FR_INVALID_NAME"The given string is invalid as the path name. One of the following possibilities is suspected.\n\rThere is any character not allowed for the file name.\n\rThe string is out of 8.3 format. (at non-LFN cfg.)\n\rFF_MAX_LFN is insufficient for the file name. (at LFN cfg.)\n\rThere is any character encoding error in the string."
+	FR_DENIED "The required access was denied due to one of the following reasons:\n\rWrite mode open against the read-only file.\n\rDeleting the read-only file or directory.\n\rDeleting the non-empty directory or current directory.\n\rReading the file opened without FA_READ flag.\n\rAny modification to the file opened without FA_WRITE flag.\n\rCould not create the object due to root directory full or disk full.\n\rCould not allocate a contiguous area to the file."
+	FR_EXIST "Name collision. An object with the same name is already existing.";
+	FR_INVALID_OBJECT "The file/directory object is invalid or a null pointer is given. There are some reasons as follows:\n\r	It has been closed, or collapsed.\n\rPhysical drive is not ready to work due to a media removal.\n\r"
+	FR_WRITE_PROTECTED "A write mode operation against the write-protected media."
+	FR_INVALID_DRIVE "Invalid drive number is specified in the path name. A null pointer is given as the path name. (Related option: FF_VOLUMES)"
+	FR_NOT_ENABLED "Work area for the logical drive has not been registered by f_mount function."
+	FR_NO_FILESYSTEM "There is no valid FAT volume on the drive or wrong lower layer implementation."
+	FR_MKFS_ABORTED "The f_mkfs function aborted before start in format due to a reason as follows:\n\r	It is impossible to format with the given parameters.\n\rThe size of volume is too small. 128 sectors minimum with FM_SFD.\n\rThe partition bound to the logical drive coulud not be found. (Related option: FF_MULTI_PARTITION)"
+	FR_TIMEOUT "The function was canceled due to a timeout of thread-safe control. (Related option: FF_TIMEOUT)"
+	FR_LOCKED "The operation to the object was rejected by file sharing control. (Related option: FF_FS_LOCK)"
+	FR_NOT_ENOUGH_CORE "Not enough memory for the operation."
+	FR_TOO_MANY_OPEN_FILES "Number of open objects has been reached maximum value and no more object can be opened. (Related option: FF_FS_LOCK)"
+	FR_INVALID_PARAMETER "The given parameter is invalid or there is an inconsistent for the volume."
+}

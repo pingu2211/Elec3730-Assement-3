@@ -33,7 +33,7 @@ void Ass_03_Task_04(void const * argument)
   int map(int x, int in_min, int in_max, int out_min, int out_max);
 
   osSignalWait(1,osWaitForever);
-  safe_printf("Hello from Task 4 - Analog Input (turn ADC knob or use pulse sensor)\n");
+  safe_printf("Hello from Task 4 - Analog Input (turn ADC knob or use pulse sensor)\n\r");
 
   // Draw a box to plot in
   osMutexWait(myMutex01Handle, osWaitForever);
@@ -44,14 +44,14 @@ void Ass_03_Task_04(void const * argument)
   status = HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&ADC_Value, BUFFER_MAX);
   if (status != HAL_OK)
   {
-	  safe_printf("ERROR: Task 4 HAL_ADC_Start_DMA() %d\n", status);
+	  safe_printf("ERROR: Task 4 HAL_ADC_Start_DMA() %d\n\r", status);
   }
 
 
 //  status = HAL_ADC_Stop_DMA(&hadc1);
 //  if (status != HAL_OK)
 //  {
-//	  safe_printf("ERROR: Task 4 HAL_ADC_Stop_DMA() %d\n", status);
+//	  safe_printf("ERROR: Task 4 HAL_ADC_Stop_DMA() %d\n\r", status);
 //  }
   // Start main loop
   int ave = 0;
