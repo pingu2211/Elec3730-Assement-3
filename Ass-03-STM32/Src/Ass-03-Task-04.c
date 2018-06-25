@@ -125,3 +125,25 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	osSemaphoreRelease(myBinarySem06Handle);
 	HAL_GPIO_WritePin(GPIOD, LD3_Pin, GPIO_PIN_RESET);
 }
+/*******************************************************************************************************/
+/* function to calculate the average of the analog input */
+uint8_t analog_ave(double *inp_array[]){	/* input array from DAC*/
+	double sum = 0;
+	double ave;
+	int i;
+	for(i=0;inp_array[i] == NULL; i++){
+		sum = sum+inp_array[i];
+	}
+	ave = sum/(i+1);
+	return ave;
+}
+/*******************************************************************************************************/
+/*function to calculate standard deviation*/
+uint8_t std_dev(double ave, double *inp_array[]){
+	double av = analog_ave(inp_array);
+	double stdev;
+	for(int i=0;inp_array[i] == NULL; i++){
+		stdev = sqrt(((inp_array[i]-av)^2)/(BUFFER_MAX/2));
+	}
+	return stdev;
+}
