@@ -166,41 +166,91 @@ uint8_t pull_array(char *filename, double *inp_array){
 	int time, size;
 	int byte_size = sizeof(int);
 	int array_size_bytes, array_size;
+
 	/* open file */
 	res = f_open(&fobj, filename, FA_READ);
 	if (!res){
-		safe_printf("File %s failed to open.\n\r", filename);
+		safe_printf("%s failed to open.\n\r", filename);
 		return -1;
 	}
 	/* time*/
 	res = f_read(&fobj, &time, byte_size, &array_size_bytes);
 	if(!res){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
 		return -1;
 	}
 	if (byte_size != array_size_bytes){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
 		return -1;
 	}
 	/* array size */
 	res = f_read(&fobj, &size, byte_size, &array_size_bytes);
 	if(!res){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
 		return -1;
 	}
 	if (byte_size != array_size_bytes){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
 		return -1;
 	}
 	/* reading array */
 	byte_size = size*sizeof(double);
 	res = f_read(&fobj, inp_array, byte_size, &array_size_bytes);
 	if(!res){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
 		return -1;
 	}
 	if (byte_size != array_size_bytes){
-		safe_printf("File %s could not be read.\n\r", filename);
+		safe_printf("%s could not be read.\n\r", filename);
+		return -1;
+	}
+	array_size = array_size_bytes/sizeof(double);
+	f_close(&fobj);
+	return array_size;
+}
+/*******************************************************************************************************/
+/* function that reads array from file */
+uint8_t write_to_file(char *filename, double *inp_array, int time, int size){
+	FIL fobj;
+	FRESULT res;
+	int byte_size = sizeof(int);
+	int array_size_bytes, array_size;
+
+	/* open file */
+	res = f_open(&fobj, filename, FA_READ);
+	if (!res){
+		safe_printf("%s failed to open.\n\r", filename);
+		return -1;
+	}
+	/* writing time to file */
+	res = f_write(&fobj, &time, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("Could not write to %s.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("Could not write to %s.\n\r", filename);
+		return -1;
+	}
+	/* writing array size to file */
+	res = f_write(&fobj, &size, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("Could not write to %s.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("Could not write to %s.\n\r", filename);
+		return -1;
+	}
+	/* writing array to file */
+	byte_size = size*sizeof(double);
+	res = f_write(&fobj, inp_array, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("Could not write to file %s.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("Could not write to file %s.\n\r", filename);
 		return -1;
 	}
 	array_size = array_size_bytes/sizeof(double);
