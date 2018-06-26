@@ -17,16 +17,22 @@
 uint8_t myReadFile();
 uint8_t myWriteFile();
 FRESULT scan_files (char* path);
+void F_ErrorIterp(FRESULT code);
 FIL MyFile;
 FIL MyFile2, MyFile3;
 FRESULT Status;
-int false = 0;
-int true = !0;
-int count = 0;
 bool USR_DBG = false;
-/*******************************************************************************************************/
-/* function declarations for Q1 */
-int8_t ls(uint8_t *numbers_p[], uint8_t num_count);
+
+enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
+#define MAX_PATH_LENGTH 100
+#define TABSTOP 8
+
+typedef struct{
+int8_t *Command_string; 											// Command string
+int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
+int8_t *Help_s; 													// Help information
+} command_s;
+
 int8_t ls(uint8_t *args_p[], uint8_t args_count);
 int8_t mkdir(uint8_t *args_p[], uint8_t args_count);
 int8_t analog(uint8_t *args_p[], uint8_t args_count);
@@ -37,65 +43,39 @@ int8_t debug(uint8_t *args_p[], uint8_t args_count);
 int8_t help(uint8_t *args_p[], uint8_t args_count);
 int8_t path(uint8_t *args_p[], uint8_t args_count);
 int8_t rm(uint8_t *args_p[], uint8_t args_count);
+bool validPath(char * path);
 int string_parser (char *inp, char **array_of_words_p[]);
-/*******************************************************************************************************/
-/* command structure*/
-enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
-#define MAX_PATH_LENGTH 100
-typedef struct{
-int8_t *Command_string; 											// Command string
-int8_t (*Function_p)(uint8_t *args_p[], uint8_t args_count);		// Function pointer				//
-int8_t *Help_s; 													// Help information
-} command_s;
 
-const command_s CommandList[] = {		// structure holding list of commands and their help displays.
-{"analog", 		&analog, 	"Plot the analog input for the given period of time. Input looks like: analog <time>"},	// plots analog input for given time
-{"ls", 			&ls, 		"List contents of current folder"},				// Lists contents of current folder/directory
-{"cd", 			&cd, 		"Change current directory. Input looks like: cd <directory>"},	// Change current directory
-{"mkdir", 		&mkdir, 	"Create new folder. Input looks like: mkdir <directoty>"},		// make new folder/directory
-{"cp", 			&cp, 		"Copy selected file to selected location. Input looks like: cp <file> <directory>"},	// copy file to new location
-{"rm", 			&rm, 		"Deletes selected file. Input looks like: rm <file>"},						// delete selected file
-{"debug", 		&debug,		"Turns debug messages on and off. Input looks like: debug <on>||<off>"},	// debug messages on or off
-{"help",       	&help,		"Show help messages. Input looks like: help <command>"},					// display help message
-{"clear",       &clear,     "clears the terminal"},			// clears terminal and the console
+const command_s CommandList[] = {								// structure holding list of commands and their help displays.
+{"analog", 		&analog, 	"Plot the analog input for the given period of time."},
+{"ls", 			&ls, 		"List contents of current folder"},
+{"cd", 			&cd, 		"Change current directory"},
+{"mkdir", 		&mkdir, 	"Create new folder"},
+{"cp", 			&cp, 		"Copy selected file to selected location"},
+{"rm", 			&rm, 		"Deletes selected file"},
+{"debug", 		&debug,		"Turns debug messages on and off"},	// debug messages on or off
+{"help",       	&help,		"Show help messages"},
+{"clear",       &clear,     "clears the terminal"},
 {NULL, 			NULL, 		NULL}
 };
-/*******************************************************************************************************/
+
+
 int Command_Function(int args_count, char **Array_numbers[]){				// function takes input from user and compares the command with list of commands
 	char **Args;
 	if (args_count>1) Args = &Array_numbers[1];
 	for (int i=0;CommandList[i].Command_string!=NULL;i++){
 		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list			// implemented debug messages
-
-			// CommandList[i].Function_p(Args,num_count-1);				// reference to function the user has entered.
-
 			CommandList[i].Function_p(Args,args_count-1);				// reference to function the user has entered.
-
 		}
 	}
 	return 0;
 }
-/*******************************************************************************************************/
-//int Command_Function(int arg_count, char **Array_numbers){				// function takes input from user and compares the command with list of commands
-//	if (USR_DBG)printf("%s\n",Array_numbers[0]);						// each command references a particular function (add, multiply, etc.)
-//	char **Args = &Array_numbers[1];
-//	for (int i=0;CommandList[i].Command_string!=NULL;i++){
-//		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list
-//			if (USR_DBG)printf("first arg = %s\n",Args[0]);				// implemented debug messages
-//			CommandList[i].Function_p(Args,arg_count-1);				// reference to function the user has entered.
-//		}
-//	}
-//	return 0;
-//}
-/*******************************************************************************************************/
-void Ass_03_Task_01(void const * argument)
-{
-
 
 int isControlChar(char c){				// checks input character against the ascii table
 	if (c<32||c==127) return true;		// returns true if input is a valid character
 	else return false;					// valid characters are 32-127 on ascii table
 }
+
 
 
 void Ass_03_Task_01(void const * argument)
@@ -186,8 +166,8 @@ void myGetLine(char ** buff){
 	}
 	return;
 }
-/*******************************************************************************************************/
-int string_parser(char *inp, char **array_of_words_p[])		// string parser function
+
+int string_parser(char *inp, char **array_of_words_p[])
 {
 	//Check if parsed string is valid, doesn't equal null and is not empty
 	if(inp == NULL || strlen(inp) == 0)
@@ -286,7 +266,7 @@ int string_parser(char *inp, char **array_of_words_p[])		// string parser functi
 	free(tempstring); //free malloc'd memory
 	return (word_c);  //return word count
 }
-/*******************************************************************************************************/
+
 uint8_t myReadFile()
 {
 #define READ_FILE "Hello.txt"
@@ -347,17 +327,55 @@ uint8_t myWriteFile()
 	return 0;
 }
 
-/*******************************************************************************************************/
-int8_t help(uint8_t *args[], uint8_t count){   	// help function to display command help messages
+
+
+
+int8_t ls(uint8_t *args_p[], uint8_t args_count){
+          FRESULT res;
+          DIR dir;
+          uint8_t pathlen,namelen;
+          static FILINFO fno;
+          char * path = (args_count<0)?args_p[0]:"";
+          res = f_opendir(&dir, path);                       /* Open the directory */
+          if (res == FR_OK) {
+              for (;;) {
+                  res = f_readdir(&dir, &fno);                   /* Read a directory item */
+                  if (res != FR_OK){
+                	  F_ErrorIterp(res);
+                	  break;  /* Break on error or end of dir */
+                  }else if(fno.fname[0] == 0){
+                	  break;
+                  }
+                  pathlen = strlen(path);
+                  namelen = strlen(fno.fname);
+                  safe_printf("%s",fno.fname);
+                  for (int t=0;t < 5-(namelen/TABSTOP);t++){
+                	  safe_printf("\t");
+                  }
+                  if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                      safe_printf("(DIR)\n\r");
+                  } else {                                       /* It is a file. */
+                	  safe_printf("(%i Bytes)\n\r",fno.fsize);
+                  }
+              }
+              f_closedir(&dir);
+          }else{
+        	  F_ErrorIterp(res);
+          }
+          return res;
+}
+
+
+int8_t help(uint8_t *args[], uint8_t count){   // help function to display command help messages
 	if (USR_DBG)safe_printf("%s\n\r",args[0]);
 	if (count==0){												// when user types 'help' and no command
 			for (int h=0;CommandList[h].Command_string!=NULL;h++){
 			safe_printf("%s\t\t%s\n\r",CommandList[h].Command_string,CommandList[h].Help_s);	// print ALL command help messages
 			}
 		}else{
-		for (int i=0;CommandList[i].Command_string!=NULL;i++){
-			if(strcmp(CommandList[i].Command_string,args[0])==0){	// compare argument to the list of commands
-				safe_printf("\%s\n\r",CommandList[i].Help_s);		// print the help message linked with the command in the structure
+		for (int i=0;CommandList[i].Command_string!=NULL;i++){  	// compare the help command
+			if(strcmp(CommandList[i].Command_string,args[0])==0){
+				safe_printf("\%s\n\r",CommandList[i].Help_s);
 			}
 		}
 	}
@@ -373,20 +391,20 @@ bool isNumber(char * str){												// checks input against ascii table
 			return false;
 		}
 	}
-	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));	// print debug message
+	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));
 	return true;
 }
 /*******************************************************************************************************/
 int8_t clear(uint8_t *args[], uint8_t count){	// function clears the terminal window
 
-	printf("\n\rclear\n\r");	// clears terminal
-	printf("\e[1;1H\e[2J");		// clears console
+	printf("\n\rclear\n\r");
+	printf("\e[1;1H\e[2J");
 	return 0;
 }
 
 /*******************************************************************************************************/
 int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn debug messages on and off
-	if (count==0)USR_DBG=!USR_DBG;					// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
+	if (count==0)USR_DBG=!USR_DBG;				// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
 	if (count==1){
 		if (strcmp(args[1],"on")==0||strcmp(args[1],"ON")==0){	// checks if user entered the command 'debug on (or ON)'
 			USR_DBG=true;										// if so, turn debug messages on
@@ -399,7 +417,7 @@ int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn 
 	return 0;
 }
 /*******************************************************************************************************/
-int8_t analog(uint8_t *args_p[],uint8_t args_count){	// plot the analog input data on the touch panel for a given time step
+int8_t analog(uint8_t *args_p[],uint8_t args_count){
 	int number;
 	if (sizeof(args_count)>1){
 		printf("Too many arguments entered. Only one number is necessary.");	// if more than one number is entered return error message.
@@ -415,112 +433,121 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){	// plot the analog input da
 		}else{
 			number=atof(args_p[0]);					// take the input number that is a string of characters and convert to a double
 		}
-		if (number<0){								// if the input number is negative
-			printf("Argument must be a positive number - time cannot be negative");	// print error - time must be a positive number
+		if (number<0){
+			printf("Argument must be a positive number - time cannot be negative");
 			return -1;
 		}
+	}
+/*******************************************************************************************************/
 
-}
 /*******************************************************************************************************/
-int8_t ls(uint8_t *args_p[], uint8_t args_count){		// function lists the contents of the current directory
-          FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
-          DIR dir;										// current directory
-          UINT i;
-          static FILINFO fno;
-          char * path = (args_count<0)?args_p[0]:"";			// pointer to path entered by user
-          res = f_opendir(&dir, path);                       	// Open the directory
-          if (res == FR_OK) {									// if open function was successful
-              for (;;) {
-                  res = f_readdir(&dir, &fno);                  // Read a directory item
-                  if (res != FR_OK || fno.fname[0] == 0) break; // Break on error or end of dir
-                  if (fno.fattrib & AM_DIR) {                   // if it is a directory
-                      i = strlen(path);
-                      safe_printf("%s/%s\t\t\tDIR\n\r\n\r", path, fno.fname);
-                  } else {                                      // if  it is a file.
-                	  safe_printf("%s\t\t%i Bytes\n\r\n\r", fno.fname,fno.fsize);
-                  }
-              }
-              f_closedir(&dir);
-          }
-          return res;		// return result res = FR_OK = 0 OR res = false
-}
-/*******************************************************************************************************/
-int8_t cd(uint8_t *args_p[],uint8_t args_count){						// function changes the current directory to a new directory entered by the user
-		FRESULT res;													// result of FATfs functions -> FR_OK = 0 = success
-	    char * path = (args_p[0]!=NULL)?args_p[0]:"";					// pointer to path entered by the user
-	    res = f_chdir(path);											// FATfs function that changes current directory
-	    if (res != FR_OK) {												// if function was not successful
-	    	safe_printf("Error occurred. Directory not found.\n\r");	// print error
-	    } 	else {														// if function was successful
-	   		safe_printf("%s>\n\r",path);								// print the new directory name
+int8_t cd(uint8_t *args_p[],uint8_t args_count){
+		FRESULT res;
+	    DIR dir;
+	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
+
+	    res = f_chdir(path);
+	    if (res != FR_OK) {
+	    	F_ErrorIterp(res);
+	    } 	else {
+	   		safe_printf("%s\n\r",path);
 	   	}
 	    return res;
 }
 /*******************************************************************************************************/
-int8_t mkdir(uint8_t *args_p[],uint8_t args_count){			// function creates new folder/directory
-		FRESULT res;										// result of FATfs functions -> FR_OK = 0 = success
-		char * path = (args_p[0]!=NULL)?args_p[0]:"";		// pointer to path entered by the user
-		res = f_mkdir(path);								// FATfs function creates new folder
-		if (res != FR_OK){									// if function was not successful
-			safe_printf("Error occurred. Unable to create directory.\n\r");	// print error
-		} 	else {											// if function was successful
-	    		safe_printf("New Folder: %s\n\r",path);		// print new folder name
+int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
+		FRESULT res;
+		char * path = (args_p[0]!=NULL)?args_p[0]:"";
+		if (!validPath(path)){
+			safe_printf("Invalid Folder Name, folders cannot contain ,.'\"~`!@^*|\\");
+			return 0;
+		}
+		res = f_mkdir(path);
+		if (res != FR_OK){
+			safe_printf("Error occurred. Unable to create directory.\n\r");
+			F_ErrorIterp(res);
+		} 	else {
+	    		safe_printf("Folder Created: %s\n\r",path);
 		}
 		return res;
 }
 /*******************************************************************************************************/
-int8_t cp(uint8_t *args_p[],uint8_t args_count){		// function copies a selected file to a selected location
-	 FRESULT res;										// result of FATfs functions -> FR_OK = 0 = success
+int8_t cp(uint8_t *args_p[],uint8_t args_count){
+	 FRESULT res;
 	 DIR dir;
-	 char * path_old = (args_p[0]!=NULL)?args_p[0]:"";	// pointer to old path
-	 char * path_new = (args_p[1]!=NULL)?args_p[1]:"";	// pointer to new path
-	 char * new_name;
-	 res = f_stat(path_new);
-	 if (res != FR_OK){
-		 new_name = strcat(path_old,(path_old)2);
-		 res = frename(path_old,new_name);
-		 if (res != FR_OK){
-			 safe_printf("Error Occurred. Could not copy file.");
-			 return -1;
-		 } else {
-			 safe_printf("Destination could not be found. File %s copied to current directory.\n\r New File: %s\n\r", path_old, new_name);
-			 return res;
-		 }
-	 }else {
-		 res = f_rename(path_old, path_new);			// FATfs function copies file to location
-		 if (res != FR_OK){								// if copy was not successful
-			 safe_printf("Error Occurred. Could not copy %s to %s.\n\r", path_old, path_new);
-			 return -1;
-		 } else {
-			 safe_printf("File %s copied to %s\n\r",path_old, path_new);
-			 return res;
-		 }
-
-	}
-	return 0;
+	 char * path_old = args_p[0];
+	 char * path_new = args_p[1];
+	 	 if (validPath(path_new)){							//check if the new path is a valid path
+			 res = f_rename(path_old, path_new);			//moves the file
+			 if (res != FR_OK){
+				 safe_printf("Error Occurred. Could not copy %s to %s.", path_old, path_new);		// Generate error messages
+				 F_ErrorIterp(res);
+				 return res;
+			 } else {
+				 safe_printf("%s -> %s",path_old,path_new);											// make pretty sucess msgs
+				 return res;
+			 }
+	 	 }else{
+	 		 return FR_INVALID_NAME;
+	 	 }
 }
 
 /*******************************************************************************************************/
-int8_t rm(uint8_t *args_p[],uint8_t args_count){	// function deletes a selected file
-	FRESULT res;									// result of FATfs functions -> FR_OK = 0 = success
-	char * path = (args_p[0]!=NULL)?args_p[0]:"";	// pointer to path entered by the user
-	res = f_stat(path);								// FATfs function checks if the file exists
-	if (res == FR_INVALID_NAME){					// if invalid name is entered
-		safe_printf("%s does not exist\n\r",path);	// print error
-		return -1;
-	} else {
-		if (res == FR_OK){							// if file exists
-			res = f_unlink (path);					// FATfs function deletes a file
-				if (res==FR_OK){					// if function successful
-					safe_printf("%s deleted.\n\r", path);	// print deleted file
-					return res;
-				}else{										// if unsuccessfully deleted
-					safe_printf("%s could not be deleted.\n\r", path);	// print error
-					return -1;
-				}
-		}
-	}
+int8_t rm(uint8_t *args_p[],uint8_t args_count){
+	FILINFO * info;
+	FRESULT res;
+	char * path = args_p[0];
 
+	res = f_stat(path,info);						// FATfs function checks if the file exists
+	if (res == FR_INVALID_NAME){					// print error if file doesnt exist
+		safe_printf("%s does not exist\n\r",path);
+		F_ErrorIterp(res);
+		return 0;
+	}
+	res = f_unlink (args_p[0]);						// FATfs function deletes a file
+	if (res==FR_OK){
+		safe_printf("successfuly removed %s", path);
+	}else if(res == FR_DENIED){						// if unsuccessful due to folder not being empty
+			printf("Could not Remove %s: DIR not empty",path);
+	}else{
+		safe_printf("could not removed %s", path);	// generate error messages from error code
+		F_ErrorIterp(res);
+	}
 	return 0;
 }
 /*******************************************************************************************************/
+
+bool validPath(char * path){			// checks path for invalid characters, returns true if path is ok
+	char * invalidchars= ",.'\"~`!@^*|\\";	// list of invalid characters
+	for (int i=0; i < strlen(invalidchars);i++){
+		if (strchr(path,invalidchars[i]))return false;		// step through every invalid charaacter, if any are found return 0
+	}
+	return true;
+}
+
+void F_ErrorIterp(FRESULT code){
+	if (code == FR_OK){safe_printf("The function succeeded.");}
+	else if (code == FR_DISK_ERR){safe_printf("The lower layer, disk_read, disk_write or disk_ioctl function, reported that an unrecoverable hard error occured.");}
+	else if (code == FR_INT_ERR ){safe_printf("Assertion failed. An insanity is detected in the internal process. One of the following possibilities is suspected.\n\rWork area (file system object, file object or etc...) has been broken by stack overflow or any other tasks. This is the reason in most case.\nThere is an error of the FAT structure on the volume.\n\rThere is a bug in the FatFs module itself.\n\rWrong lower layer implementation.");}
+	else if (code == FR_NOT_READY){safe_printf("The lower layer, disk_initialize function, reported that the storage device could not be got ready to work. One of the following possibilities is suspected.\n\rNo medium in the drive.\n\rWrong lower layer implementation.\n\rWrong hardware configuration.\n\rThe storage device has been broken.");}
+	else if (code == FR_NO_FILE){safe_printf("Could not find the file.");}
+	else if (code == FR_NO_PATH){safe_printf("Could not find the path.");}
+	else if (code == FR_INVALID_NAME){safe_printf("The given string is invalid as the path name. One of the following possibilities is suspected.\n\rThere is any character not allowed for the file name.\n\rThe string is out of 8.3 format. (at non-LFN cfg.)\n\rFF_MAX_LFN is insufficient for the file name. (at LFN cfg.)\n\rThere is any character encoding error in the string.");}
+	else if (code == FR_DENIED){safe_printf("The required access was denied due to one of the following reasons:\n\rWrite mode open against the read-only file.\n\rDeleting the read-only file or directory.\n\rDeleting the non-empty directory or current directory.\n\rReading the file opened without FA_READ flag.\n\rAny modification to the file opened without FA_WRITE flag.\n\rCould not create the object due to root directory full or disk full.\n\rCould not allocate a contiguous area to the file.");}
+	else if (code == FR_EXIST){safe_printf("Name collision. An object with the same name is already existing.");}
+	else if (code == FR_INVALID_OBJECT){safe_printf("The file/directory object is invalid or a null pointer is given. There are some reasons as follows:\n\r	It has been closed, or collapsed.\n\rPhysical drive is not ready to work due to a media removal.\n\r");}
+	else if (code == FR_WRITE_PROTECTED){safe_printf("A write mode operation against the write-protected media.");}
+	else if (code == FR_INVALID_DRIVE){safe_printf("Invalid drive number is specified in the path name. A null pointer is given as the path name. (Related option: FF_VOLUMES)");}
+	else if (code == FR_NOT_ENABLED){safe_printf("Work area for the logical drive has not been registered by f_mount function.");}
+	else if (code == FR_NO_FILESYSTEM){safe_printf("There is no valid FAT volume on the drive or wrong lower layer implementation.");}
+	else if (code == FR_MKFS_ABORTED){safe_printf("The f_mkfs function aborted before start in format due to a reason as follows:\n\r	It is impossible to format with the given parameters.\n\rThe size of volume is too small. 128 sectors minimum with FM_SFD.\n\rThe partition bound to the logical drive coulud not be found. (Related option: FF_MULTI_PARTITION)");}
+	else if (code == FR_TIMEOUT){safe_printf("The function was canceled due to a timeout of thread-safe control. (Related option: FF_TIMEOUT)");}
+	else if (code == FR_LOCKED){safe_printf("The operation to the object was rejected by file sharing control. (Related option: FF_FS_LOCK)");}
+	else if (code == FR_NOT_ENOUGH_CORE){safe_printf("Not enough memory for the operation.");}
+	else if (code == FR_TOO_MANY_OPEN_FILES){safe_printf("Number of open objects has been reached maximum value and no more object can be opened. (Related option: FF_FS_LOCK)");}
+	else if (code == FR_INVALID_PARAMETER){safe_printf("The given parameter is invalid or there is an inconsistent for the volume.");}
+	else{
+		safe_printf("Uspecified FATFS error");
+	}
+
+}

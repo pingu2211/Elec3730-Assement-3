@@ -127,7 +127,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 }
 /*******************************************************************************************************/
 /* function to calculate the average of the input data */
-uint8_t ave(double *inp_array[], int array_size){	/* input array from DAC*/
+uint8_t ave(double *inp_array, int array_size){	/* input array from DAC*/
 	double sum = 0;
 	double ave;
 	int i;
@@ -139,24 +139,71 @@ uint8_t ave(double *inp_array[], int array_size){	/* input array from DAC*/
 }
 /*******************************************************************************************************/
 /*function to calculate standard deviation of input data*/
-uint8_t std_dev(double ave, double *inp_array[], int array_size){
-	double av = ave(inp_array);
+uint8_t std_dev(double *inp_array, int array_size){
+	double av = ave(inp_array,array_size);
 	double stdev;
 	int i;
 	for(i=0;i<array_size; i++){
-		stdev = sqrt(((inp_array[i]-av)^2)/(BUFFER_MAX/2));	// formula for standard deviation
+		stdev = sqrt((pow((inp_array[i]-av),2))/(BUFFER_MAX/2));	// formula for standard deviation
 	}
 	return stdev;
 }
 /*******************************************************************************************************/
 /* function for downsampling the input data */
-uint8_t downsampling(double *inp_array[], int array_size){
-	int i;
-	int ds_factor;								// downsampling factor, eg. if ds_factor = 100, function would make new array with every hundredth element of the input array
-	double *new_array;
+uint8_t downsampling(double *inp_array, int array_size, int ds_factor){
+	int i;								// downsampling factor, eg. if ds_factor = 100, function would make new array with every hundredth element of the input array
+	double *new_array= malloc(sizeof(double)*ds_factor);
 	for(i=0;i<array_size;i+=ds_factor){
-		new_array[i/ds_factor] = inp_array[i];	//  makes new_array of every ds_factor(th) elements of input_array
+		new_array[i/ds_factor] = inp_array[i];	// new array downsampled from input array by downsampling factor, eg. if ds_factor = 100, function would make new array with every hundredth element of the input array
 	}
 	return *new_array;							// function returns downsampled array
 }
 /*******************************************************************************************************/
+/* function that reads array from file */
+uint8_t pull_array(char *filename, double *inp_array){
+	FIL fobj;
+	FRESULT res;
+	int time, size;
+	int byte_size = sizeof(int);
+	int array_size_bytes, array_size;
+	/* open file */
+	res = f_open(&fobj, filename, FA_READ);
+	if (!res){
+		safe_printf("File %s failed to open.\n\r", filename);
+		return -1;
+	}
+	/* time*/
+	res = f_read(&fobj, &time, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	/* array size */
+	res = f_read(&fobj, &size, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	/* reading array */
+	byte_size = size*sizeof(double);
+	res = f_read(&fobj, inp_array, byte_size, &array_size_bytes);
+	if(!res){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	if (byte_size != array_size_bytes){
+		safe_printf("File %s could not be read.\n\r", filename);
+		return -1;
+	}
+	array_size = array_size_bytes/sizeof(double);
+	f_close(&fobj);
+	return array_size;
+}
