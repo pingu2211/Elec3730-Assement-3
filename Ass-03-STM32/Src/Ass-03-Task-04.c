@@ -126,8 +126,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	HAL_GPIO_WritePin(GPIOD, LD3_Pin, GPIO_PIN_RESET);
 }
 /*******************************************************************************************************/
-/* function to calculate the average of the analog input */
-uint8_t analog_ave(double *inp_array[], int array_size){	/* input array from DAC*/
+/* function to calculate the average of the input data */
+uint8_t ave(double *inp_array[], int array_size){	/* input array from DAC*/
 	double sum = 0;
 	double ave;
 	int i;
@@ -138,9 +138,9 @@ uint8_t analog_ave(double *inp_array[], int array_size){	/* input array from DAC
 	return ave;
 }
 /*******************************************************************************************************/
-/*function to calculate standard deviation*/
+/*function to calculate standard deviation of input data*/
 uint8_t std_dev(double ave, double *inp_array[], int array_size){
-	double av = analog_ave(inp_array);
+	double av = ave(inp_array);
 	double stdev;
 	int i;
 	for(i=0;i<array_size; i++){
@@ -152,11 +152,11 @@ uint8_t std_dev(double ave, double *inp_array[], int array_size){
 /* function for downsampling the input data */
 uint8_t downsampling(double *inp_array[], int array_size){
 	int i;
-	int ds_factor;
+	int ds_factor;								// downsampling factor, eg. if ds_factor = 100, function would make new array with every hundredth element of the input array
 	double *new_array;
 	for(i=0;i<array_size;i+=ds_factor){
-		new_array[i/ds_factor] = inp_array[i];
+		new_array[i/ds_factor] = inp_array[i];	//  makes new_array of every ds_factor(th) elements of input_array
 	}
-	return *new_array;
+	return *new_array;							// function returns downsampled array
 }
 /*******************************************************************************************************/
