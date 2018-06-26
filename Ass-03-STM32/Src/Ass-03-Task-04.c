@@ -127,11 +127,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 }
 /*******************************************************************************************************/
 /* function to calculate the average of the analog input */
-uint8_t analog_ave(double *inp_array[]){	/* input array from DAC*/
+uint8_t analog_ave(double *inp_array[], int array_size){	/* input array from DAC*/
 	double sum = 0;
 	double ave;
 	int i;
-	for(i=0;inp_array[i] == NULL; i++){
+	for(i=0;i<array_size; i++){
 		sum = sum+inp_array[i];			// formula for average
 	}
 	ave = sum/(i+1);
@@ -139,11 +139,24 @@ uint8_t analog_ave(double *inp_array[]){	/* input array from DAC*/
 }
 /*******************************************************************************************************/
 /*function to calculate standard deviation*/
-uint8_t std_dev(double ave, double *inp_array[]){
+uint8_t std_dev(double ave, double *inp_array[], int array_size){
 	double av = analog_ave(inp_array);
 	double stdev;
-	for(int i=0;inp_array[i] == NULL; i++){
+	int i;
+	for(i=0;i<array_size; i++){
 		stdev = sqrt(((inp_array[i]-av)^2)/(BUFFER_MAX/2));	// formula for standard deviation
 	}
 	return stdev;
 }
+/*******************************************************************************************************/
+/* function for downsampling the input data */
+uint8_t downsampling(double *inp_array[], int array_size){
+	int i;
+	int ds_factor;
+	double *new_array;
+	for(i=0;i<array_size;i+=ds_factor){
+		new_array[i/ds_factor] = inp_array[i];
+	}
+	return *new_array;
+}
+/*******************************************************************************************************/
