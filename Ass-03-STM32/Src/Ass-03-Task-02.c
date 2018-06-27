@@ -4,31 +4,9 @@
 
 #include "Ass-03.h"
 
-//
-// This task can be used as the main pulse rate application as it takes
-// input from the front panel.
-//
-// *** MAKE UPDATES TO THE CODE AS REQUIRED ***
-//
-// Draw the boxes that make up the buttons and take action when the
-// buttons are pressed. See suggested updates for the touch panel task
-// that checks for button presses. Can do more in that task.
 
-#define XOFF 55
-#define YOFF 80
-#define XSIZE 250
-#define YSIZE 150
-
-#define GREEN	0x3722
-#define RED		0xE0A2
-#define BLUE	0x131C
-#define ORANGE  0xFCE0
-#define WHITE	0xFFFF
-#define BLACK 	0x0000
-#define MAX_LEN 18
-
-#define Second 1000
-
+// DEF static screen element locations
+ //button structure
 typedef struct button{
 	void (*handler)(void);
 	uint16_t x, y ,width, hight;
@@ -38,6 +16,7 @@ typedef struct button{
 	uint16_t textColour;
 };
 
+// takes button structure, prints it to lcd
 void button_show(struct button B){
 	osMutexWait(myMutex01Handle, osWaitForever);
 	BSP_LCD_SetTextColor(B.fillColour);
@@ -48,6 +27,7 @@ void button_show(struct button B){
 	osMutexRelease(myMutex01Handle);
 }
 
+// returns true if the user is pressing the button, animates the button press
 bool is_pressed(struct button B,Coordinate *point){
 	osMutexWait(myMutex01Handle, osWaitForever);
 	if (point->x > B.x && point->x < B.x+B.width && point->y > B.y && point->y < B.y+B.hight){
@@ -59,7 +39,7 @@ bool is_pressed(struct button B,Coordinate *point){
 			BSP_LCD_DisplayStringAt(B.x+B.width/2, B.y+B.hight/2, B.text, CENTER_MODE);
 			osMutexRelease(myMutex01Handle);
 			B.handler();
-			osDelay(Second/4);
+			osDelay(SECONDS_TO_MILLI/4);
 			osMutexWait(myMutex01Handle, osWaitForever);
 			BSP_LCD_SetTextColor(B.fillColour);
 			BSP_LCD_SetBackColor(B.fillColour);
@@ -83,43 +63,103 @@ bool is_pressed(struct button B,Coordinate *point){
 
 }
 
+// start of button functions called by button presses
+
+char mem[10];
+
 void Start(void){
 	safe_printf("Start button\n\r");
-	return;
-}
-void Stop(void){
-	safe_printf("Stop button\n\r");
-	return;
-}
-void Load(void){
-	safe_printf("Load button\n\r");
-	return;
-}
-void Store(void){
-	safe_printf("Store button\n\r");
+	struct DSP_LCD_CONTROL *Control;
+	Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
+	Control->run = CONTINUOUS;									// set pool memory
+	Control->time = -1;
+	osMessagePut(LCD_ControlMsg, Control, osWaitForever);		// tell task 4 there is new pool memory
 	return;
 }
 
+void Stop(void){
+	safe_printf("Stop button\n\r");
+	struct DSP_LCD_CONTROL *Control;
+	Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
+	Control->run = STOP;										//set pool memory
+	Control->time = -1;
+	osMessagePut(LCD_ControlMsg, Control, osWaitForever);		// send task 4 the pointer to the pooled memory
+	return;
+}
+
+void Load(void){
+	struct DSP_LCD_CONTROL *Control;
+	 safe_printf("Load button\n\r");
+	 Stop();
+	 osDelay(100);
+	 if (strlen(mem)==0){strcpy(mem, "MEM1.DAT");}
+	 read_from_file(mem, ADC_SCREEN);
+		Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
+		Control->run = RECALL;									// set pool memory
+		Control->time = -1;
+	safe_printf("Recall mode\n\r");
+	osMessagePut(LCD_ControlMsg, Control, osWaitForever);		// tell task 4 there is new pool memory
+	return;
+}
+void Store(void){
+	if (strlen(mem)==0){strcpy(mem, "MEM1.DAT");}
+	 safe_printf("Store button\n\r");
+	 Stop();
+	 write_to_file(mem, ADC_SCREEN, (uint16_t)10, (uint16_t)TPD_MAX);
+	return;
+}
+
+void MEM1(void){
+	safe_printf("MEM1 button\n\r");
+	strcpy(mem, "MEM1.DAT");
+	return;
+}
+
+void MEM2(void){
+	safe_printf("MEM2 button\n\r");
+	strcpy(mem, "MEM2.DAT");
+	return;
+}
+
+void MEM3(void){
+	safe_printf("MEM3 button\n\r");
+	strcpy(mem, "MEM3.DAT");
+	return;
+}
+
+void MEM4(void){
+	safe_printf("MEM4 button\n\r");
+	strcpy(mem, "MEM4.DAT");
+	return;
+}
+void MEM5(void){
+	safe_printf("MEM4 button\n\r");
+	strcpy(mem, "MEM4.DAT");
+	return;
+}
+
+
+
 struct button buttons[]={
 		//{handler, X,Y,Width,Height,Lable,Fill, pressed fill, text colour}
-		{Start,	(1/6.0)*XOFF, YOFF	  ,XOFF*(2.0/3),40,"Start",GREEN,BLUE,BLACK},
-		{Stop,	(1/6.0)*XOFF, YOFF+50 ,XOFF*(2.0/3),40,"Stop",RED,BLUE,BLACK},
-		//{Load,0*xgrid,1*ygrid,xgrid,ygrid,"Load",FILL_COLOUR,ALT_COLOUR,TEXT_COLOUR},
-		//{Store,0*xgrid,1*ygrid,xgrid,ygrid,"Store",FILL_COLOUR,ALT_COLOUR,TEXT_COLOUR},
-		//{NULL,0*xgrid,1*ygrid,xgrid,ygrid,"Mem 1",FILL_COLOUR,ALT_COLOUR,TEXT_COLOUR},
-		//{NULL,0*xgrid,1*ygrid,xgrid,ygrid,"Mem 2",FILL_COLOUR,ALT_COLOUR,TEXT_COLOUR},
-		//{NULL,0*xgrid,1*ygrid,xgrid,ygrid,"Mem 3",FILL_COLOUR,ALT_COLOUR,TEXT_COLOUR},
+		{Start,	(1/6.0)*XOFF, YOFF		,XOFF*(2.0/3),40,				"Start"	,GREEN,BLUE,BLACK},
+		{Stop,	(1/6.0)*XOFF, YOFF+50 	,XOFF*(2.0/3),40,				"Stop"	,RED,BLUE,BLACK},
+		{Load,	(1/6.0)*XOFF, YOFF+100 	,XOFF*(2.0/3),40,				"Load"	,LIGHT_BLUE,BLUE,BLACK},
+		{Store,	(1/6.0)*XOFF, YOFF+150	,XOFF*(2.0/3),40,				"Store"	,LIGHT_BLUE,BLUE,BLACK},
+		{MEM1,  XOFF, YOFF+YSIZE+10	,XOFF*(2.0/3),40 ,					"MEM1"	,LIGHT_BLUE,BLUE,BLACK},
+		{MEM2,  XOFF+XOFF*(2.0/3)+10, YOFF+YSIZE+10	,XOFF*(2.0/3),40 ,	"MEM2"	,LIGHT_BLUE,BLUE,BLACK},
+		{MEM3,  XOFF+(XOFF*(2.0/3)+10)*2, YOFF+YSIZE+10 ,XOFF*(2.0/3),40 ,"MEM3"	,LIGHT_BLUE,BLUE,BLACK},
+		{MEM4,  XOFF+(XOFF*(2.0/3)+10)*3, YOFF+YSIZE+10 ,XOFF*(2.0/3),40 ,"MEM4"	,LIGHT_BLUE,BLUE,BLACK},
+		{MEM5,  XOFF+(XOFF*(2.0/3)+10)*4, YOFF+YSIZE+10 ,XOFF*(2.0/3),40 ,"MEM5"	,LIGHT_BLUE,BLUE,BLACK},
+		//{NULL,(1/6.0)*XOFF, YOFF+150	,XOFF*(2.0/3),40 ,"Store"	,LIGHT_BLUE,BLUE,BLACK},
 		{NULL,NULL,NULL,NULL,NULL,NULL,NULL}
 };
 
 
 void Ass_03_Task_02(void const * argument)
 {
-
 	uint32_t loop=0;
-
 	Coordinate display;
-
 	osSignalWait(1,osWaitForever);
 	safe_printf("Hello from Task 2 - Pulse Rate Application (touch screen input)\n\r");
 
@@ -133,8 +173,10 @@ while (1)
     {
 
 		for (int i=0;buttons[i].handler!=NULL;i++){
-			if (is_pressed(buttons[i],&display)) break;
+			safe_printf("checking %s\n\r", buttons[i].text);
+			if (is_pressed(buttons[i],&display)){ break;}
 		}
+
 		if((display.y > YOFF+5) && (display.y < YOFF+YSIZE-5) &&
 			(display.x > XOFF+5) && (display.x < XOFF+XSIZE-5))
 		{

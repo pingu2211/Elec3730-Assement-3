@@ -64,6 +64,9 @@ osThreadId myTask02Handle;
 osThreadId myTask03Handle;
 osThreadId myTask04Handle;
 osMessageQId myQueue01Handle;
+osMessageQId LCD_ControlMsg;
+osMessageQId LCD_ControllMsg;
+osPoolId LCD_ControlPool;
 osTimerId myTimer01Handle;
 osMutexId myMutex01Handle;
 osMutexId myMutex02Handle;
@@ -157,6 +160,8 @@ void MX_FREERTOS_Init(void) {
   osSemaphoreWait(myBinarySem06Handle, osWaitForever); // STEPIEN: Start with nothing
   /* USER CODE END RTOS_SEMAPHORES */
 
+
+
   /* Create the timer(s) */
   /* definition and creation of myTimer01 */
   osTimerDef(myTimer01, Callback01);
@@ -193,9 +198,15 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of myQueue01 */
   osMessageQDef(myQueue01, 4, uint32_t);
   myQueue01Handle = osMessageCreate(osMessageQ(myQueue01), NULL);
+  osMessageQDef(LCD_Control, 4, DSP_LCD_CONTROL);              // Define message queue
+  LCD_ControlMsg = osMessageCreate(osMessageQ(LCD_Control), NULL);  // create msg queue
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  osPoolDef(LCD_ControlP, 4, DSP_LCD_CONTROL);              // Define message queue
+  LCD_ControlPool = osMessageCreate(osPool(LCD_ControlP), NULL);  // create msg queue
+
+
   /* USER CODE END RTOS_QUEUES */
 }
 
