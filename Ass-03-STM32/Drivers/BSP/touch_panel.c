@@ -857,7 +857,7 @@ void TouchPanel_Calibrate(void)
     do
     {
       Ptr=Read_Ads7846();
-      // HAL_Delay(1); // STEPIEN: TEST
+      osDelay(1); // STEPIEN: TEST
     }
     // while( 1 );
     while( Ptr == (void*)0 ); // STEPIEN: TEST

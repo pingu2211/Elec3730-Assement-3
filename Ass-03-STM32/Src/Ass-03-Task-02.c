@@ -68,7 +68,7 @@ bool is_pressed(struct button B,Coordinate *point){
 char mem[10];
 
 void Start(void){
-	safe_printf("Start button\n\r");
+	if(USR_DEBUG){safe_printf("Start button\n\r");}
 	struct DSP_LCD_CONTROL *Control;
 	Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
 	Control->run = CONTINUOUS;									// set pool memory
@@ -78,7 +78,7 @@ void Start(void){
 }
 
 void Stop(void){
-	safe_printf("Stop button\n\r");
+	if(USR_DEBUG){safe_printf("Stop button\n\r");}
 	struct DSP_LCD_CONTROL *Control;
 	Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
 	Control->run = STOP;										//set pool memory
@@ -89,7 +89,7 @@ void Stop(void){
 
 void Load(void){
 	struct DSP_LCD_CONTROL *Control;
-	 safe_printf("Load button\n\r");
+	if(USR_DEBUG){safe_printf("Load button\n\r");}
 	 Stop();
 	 osDelay(100);
 	 if (strlen(mem)==0){strcpy(mem, "MEM1.DAT");}
@@ -97,43 +97,43 @@ void Load(void){
 		Control= osPoolAlloc(LCD_ControlPool);						// allocate shared pool memory
 		Control->run = RECALL;									// set pool memory
 		Control->time = -1;
-	safe_printf("Recall mode\n\r");
+		if(USR_DEBUG){safe_printf("Recall mode\n\r");}
 	osMessagePut(LCD_ControlMsg, Control, osWaitForever);		// tell task 4 there is new pool memory
 	return;
 }
 void Store(void){
 	if (strlen(mem)==0){strcpy(mem, "MEM1.DAT");}
-	 safe_printf("Store button\n\r");
+	if(USR_DEBUG){safe_printf("Store button\n\r");}
 	 Stop();
 	 write_to_file(mem, ADC_SCREEN, (uint16_t)10, (uint16_t)TPD_MAX);
 	return;
 }
 
 void MEM1(void){
-	safe_printf("MEM1 button\n\r");
+	if(USR_DEBUG){safe_printf("MEM1 button\n\r");}
 	strcpy(mem, "MEM1.DAT");
 	return;
 }
 
 void MEM2(void){
-	safe_printf("MEM2 button\n\r");
+	if(USR_DEBUG){safe_printf("MEM2 button\n\r");}
 	strcpy(mem, "MEM2.DAT");
 	return;
 }
 
 void MEM3(void){
-	safe_printf("MEM3 button\n\r");
+	if(USR_DEBUG){safe_printf("MEM3 button\n\r");}
 	strcpy(mem, "MEM3.DAT");
 	return;
 }
 
 void MEM4(void){
-	safe_printf("MEM4 button\n\r");
+	if(USR_DEBUG){safe_printf("MEM4 button\n\r");}
 	strcpy(mem, "MEM4.DAT");
 	return;
 }
 void MEM5(void){
-	safe_printf("MEM4 button\n\r");
+	if(USR_DEBUG){safe_printf("MEM4 button\n\r");}
 	strcpy(mem, "MEM4.DAT");
 	return;
 }
@@ -173,7 +173,7 @@ while (1)
     {
 
 		for (int i=0;buttons[i].handler!=NULL;i++){
-			safe_printf("checking %s\n\r", buttons[i].text);
+			if(USR_DEBUG){safe_printf("checking %s\n\r", buttons[i].text);}
 			if (is_pressed(buttons[i],&display)){ break;}
 		}
 
@@ -184,7 +184,7 @@ while (1)
 			BSP_LCD_FillCircle(display.x, display.y, 2);
 			osMutexRelease(myMutex01Handle);
 			loop++;
-			safe_printf("Task 2: %d (got  %3d,%3d)\n\r", loop, display.x, display.y);
+			if(USR_DEBUG){safe_printf("Task 2: %d (got  %3d,%3d)\n\r", loop, display.x, display.y);}
 		}
 
 

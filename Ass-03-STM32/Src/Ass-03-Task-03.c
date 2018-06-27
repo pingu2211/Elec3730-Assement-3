@@ -77,7 +77,7 @@ void Ass_03_Task_03(void const * argument)
 				{
 					// Debounced: queue key pressed message
 					pressed_num++;
-					safe_printf("Task 3: %d (sent %3d,%3d)\n", pressed_num, display.x, display.y);
+					if(USR_DEBUG){safe_printf("Task 3: %d (sent %3d,%3d)\n\r", pressed_num, display.x, display.y);}
 					osMessagePut (myQueue01Handle, (uint32_t)((display.x << 16) + display.y), 0);
 					pressed_count = -OFF_COUNT;
 				}

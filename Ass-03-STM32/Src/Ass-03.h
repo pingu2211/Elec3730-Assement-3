@@ -95,9 +95,7 @@ extern uint8_t getfp(Coordinate *display);
 	fflush(stdout); \
 	osMutexRelease(myMutex02Handle);
 
-//
-// ADD YOUR CODE
-//
+volatile bool USR_DEBUG;
 
 #endif /* ASS_03_H_ */
 #define PI 3.1415926535897932

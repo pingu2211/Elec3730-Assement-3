@@ -3,18 +3,8 @@
 //   $Author: Peter $
 
 #include "Ass-03.h"
-// This is the task that reads the analog input. A buffer is divided in two to
-// allow working on one half of the buffer while the other half is being
-// loaded using the DMA controller.
-//
-// This task also plots the wave form to the screen.
-//
-// *** MAKE UPDATES TO THE CODE AS REQUIRED ***
-//
-// Note that there needs to be a way of starting and stopping the display.
 
-uint16_t ADC_Value[BUFFER_MAX];
-
+volatile uint16_t ADC_Value[BUFFER_MAX];
 
 void Ass_03_Task_04(void const * argument)
 {
@@ -47,52 +37,58 @@ void Ass_03_Task_04(void const * argument)
 	BSP_LCD_DisplayStringAt(XOFF,YOFF-10, "0" ,CENTER_MODE);
 	osMutexRelease(myMutex01Handle);
 	// Start the conversion process
-	status = HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC_Value, BUFFER_MAX);
+	status = HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC_Value, BUFFER_MAX);							// start dma
 	if (status != HAL_OK)
 	{
 	  safe_printf("ERROR: Task 4 HAL_ADC_Start_DMA() %d\n\r", status);
 	}
 	// Start main loop
 	char snum[5];
-	spp = tpd/(XSIZE-2);
-	pps = (XSIZE)/(tpd/1000);
-	itoa(tpd/1000, snum, 10);
-	ADC_SCREEN = malloc (tpd*sizeof(uint16_t));
+	spp = tpd/(XSIZE-2);				//how many samples are represented by one pixel
+	pps = (XSIZE)/(tpd/1000);			//how many pixels = 1 second
+	itoa(tpd/1000, snum, 10);			// make it so we can print the the end time on the screen
+	ADC_SCREEN = malloc (tpd*sizeof(uint16_t));					//allocate memory for 10 seconds of buffer
 	while (1)
 	{
-	  Event = osMessageGet(LCD_ControlMsg, 0);
+	  Event = osMessageGet(LCD_ControlMsg, 0);					//got a control message
 	  if (Event.status == osEventMessage){
 		  Control = Event.value.p;
+		  if(USR_DEBUG){safe_printf("LCD Control TIME: %i\n\r");}
+		  if(USR_DEBUG){safe_printf("LCD Control RUN : %i\n\r");}
 		  if (Control->time>0){
 			  tpd = Control->time;
-			  ADC_SCREEN = realloc (ADC_SCREEN,tpd*sizeof(uint16_t));
-			  spp = (tpd/(XSIZE-2));
-			  pps = (XSIZE)/(tpd/1000);
+			  spp = (tpd/(XSIZE-2));					// the length fo one full display has changed so re calc many samples are represented by one pixel
+			  pps = (XSIZE)/(tpd/1000);					// and how far appart the 1 second lines should be
 			  itoa(tpd/1000, snum, 10);
-			  osMutexWait(myMutex01Handle, osWaitForever);
+			  osMutexWait(myMutex01Handle, osWaitForever);	//update the screen to show how much time each screen takes and we changed the time so blank the screen
 			  BSP_LCD_SetTextColor(BLACK);
 			  BSP_LCD_SetBackColor(WHITE);
 			  BSP_LCD_DrawRect(XOFF-1,YOFF-1,XSIZE+1,YSIZE+1);
 			  osMutexRelease(myMutex01Handle);
+			  osMutexWait(myMutex01Handle, osWaitForever);
+			  BSP_LCD_SetTextColor(BLACK);
+			  BSP_LCD_SetBackColor(WHITE);
+			  BSP_LCD_DisplayStringAt(XOFF+XSIZE,YOFF-10, snum ,CENTER_MODE);
+			  osMutexRelease(myMutex01Handle);
 			  xpos=0;
 			  last_xpos=0;
 		  }
-		  if(Control->run==ONE_SHOT){
-			  	safe_printf("Running mode set to ONESHOT\n\r");
+		  if(Control->run==ONE_SHOT){					// if one shot, plot untill finihsed
+			  if(USR_DEBUG){safe_printf("Running mode set to ONESHOT\n\r");}
 				RUNNING = Control->time;
-		  }else if(Control->run==CONTINUOUS){
+		  }else if(Control->run==CONTINUOUS){			//if continuous, run adc until stopped
 			  RUNNING = CONTINUOUS;
-			  safe_printf("Running mode set to CONTINUOUS\n\r");
-		  }else if(Control->run==RECALL){
+			  if(USR_DEBUG){safe_printf("Running mode set to CONTINUOUS\n\r");}
+		  }else if(Control->run==RECALL){				// if recall, same as one shot but from sdcard
 			  xpos=0;
 			  last_xpos=0;
 			  RUNNING = Control->run;
-			  safe_printf("Running mode set to RECALLl\n\r");
+			  if(USR_DEBUG){safe_printf("Running mode set to RECALLl\n\r");}
 		  }else if(Control->run==STOP){
-				safe_printf("Running mode set to STOP\n\r");
+			  if(USR_DEBUG){safe_printf("Running mode set to STOP\n\r");}		//stop running no matter what
 				RUNNING = Control->run;
 		  }else{
-			  safe_printf("Running in undefined mode %i \n\r", Control->run);
+			  if(USR_DEBUG){safe_printf("Running in undefined mode %i \n\r", Control->run);}	//this could go badly..........
 			  RUNNING = Control->run;
 		  }
 		  osPoolFree(LCD_ControlPool,Event.value.p);
@@ -100,37 +96,32 @@ void Ass_03_Task_04(void const * argument)
 
 	  if (RUNNING==CONTINUOUS || RUNNING>=ONE_SHOT){
 	  // Wait for first half of buffer
-		  osSemaphoreWait(myBinarySem05Handle, osWaitForever);
-		  osMutexWait(myMutex01Handle, osWaitForever);
-		  BSP_LCD_SetTextColor(BLACK);
-		  BSP_LCD_SetBackColor(WHITE);
-		  BSP_LCD_DisplayStringAt(XOFF+XSIZE,YOFF-10, snum ,CENTER_MODE);
-		  osMutexRelease(myMutex01Handle);
-		  if(ADC_ITTR + BUFFER_MAX<=TPD_MAX-1){
-			  ADC_ITTR += BUFFER_MAX;
+
+		  if(ADC_ITTR + BUFFER_MAX<=TPD_MAX-1){						// we always wanna store 10 seconds of data, but the dma buffer is only 1 second so we need a rolling buffer
+			  ADC_ITTR += BUFFER_MAX;								// if the buffer isnt nearly full its fine, keep adding to it
 		  }else{
-			  memcpy(ADC_SCREEN,&ADC_SCREEN[BUFFER_MAX],(TPD_MAX-BUFFER_MAX)*sizeof(uint16_t));
+			  memcpy(ADC_SCREEN,&ADC_SCREEN[BUFFER_MAX],(TPD_MAX-BUFFER_MAX)*sizeof(uint16_t));	// if the buffer IS nearly full, move the first dma buffer length off from the start to make some room
 			  if(ADC_SCREEN==NULL){
-				  safe_printf("MEMORY ERROR TOUCH SCREEN");
+				  safe_printf("MEMORY ERROR TOUCH SCREEN");										// this is probably bad.....
 				  osDelay(1000);
 			  }
 		  }
-		  for(i=0;i<BUFFER_MAX;i++)
+		  osSemaphoreWait(myBinarySem05Handle, osWaitForever);		// if in continuous or one shot mode we wanna use the dma data so wait for it
+		  for(i=0;i<BUFFER_MAX;i++)					// step though ever value in the dma buffer
 		  {
-			  if (i==BUFFER_MAX/2){
+			  if (i==BUFFER_MAX/2){					// we may only have gotten half the dma buffer, so if we wanna use the second half we better check its full when we get there
 				  osSemaphoreWait(myBinarySem06Handle, osWaitForever);
 				  HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_SET);
 			  }
 
-			  ADC_SCREEN[ADC_ITTR + i]=ADC_Value[i];
-
-			  if(i%spp==0){
-				  osMutexWait(myMutex01Handle, osWaitForever);
-					  BSP_LCD_SetTextColor((xpos%pps==0)?LCD_COLOR_RED:LCD_COLOR_WHITE);
+			  ADC_SCREEN[ADC_ITTR + i]=ADC_Value[i];	// move the value from the dma buffer into the 10 seccond buffer
+			  if(i%spp==0){								// we might have upto 10k samples, but only XSIZE pixels, thats what that calc up there was for.
+				  osMutexWait(myMutex01Handle, osWaitForever);						//draw the lucky sample on the screen
+					  BSP_LCD_SetTextColor((xpos%pps==0)?LCD_COLOR_RED:LCD_COLOR_WHITE);		// also if the pixel is a seccond marker, draw a red vertical line
 					  BSP_LCD_DrawVLine(XOFF+xpos,YOFF,YSIZE);
 					  BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-					  ypos=(uint16_t)((uint32_t)((ADC_Value[i]))*YSIZE/(4064));
-					  BSP_LCD_DrawLine(XOFF+last_xpos,YOFF+last_ypos,XOFF+xpos,YOFF+ypos);
+					  ypos=(uint16_t)((uint32_t)((ADC_Value[i]))*YSIZE/(4064));					//some scaling from 4064 to fit into YSIZE
+					  BSP_LCD_DrawLine(XOFF+last_xpos,YOFF+last_ypos,XOFF+xpos,YOFF+ypos);		//conect the line between the last sample and this one
 				  osMutexRelease(myMutex01Handle);
 
 				  last_xpos=xpos;
@@ -138,14 +129,15 @@ void Ass_03_Task_04(void const * argument)
 				  xpos++;
 				  if (last_xpos>=XSIZE-1)
 				  {
-					  xpos=0;
+					  xpos=0;							// thats the end of the screen, start again
 					  last_xpos=0;
 				  }
 			}
+			  if (RUNNING > STOP){RUNNING--;}			// count down for oneshot mode
 		  }
 
 		  HAL_GPIO_WritePin(GPIOD, LD4_Pin, GPIO_PIN_RESET);
-	  }else if(RUNNING==RECALL){
+	  }else if(RUNNING==RECALL){															// recal mode is basicaly the same as up there ^^ but instead of the adc buffer, we just use the 10 second one
 		  for(i=0;i<XSIZE;i++){
 			  osMutexWait(myMutex01Handle, osWaitForever);
 				  BSP_LCD_SetTextColor((xpos%pps==0)?LCD_COLOR_RED:LCD_COLOR_WHITE);
@@ -159,14 +151,14 @@ void Ass_03_Task_04(void const * argument)
 			  xpos++;
 			  if (last_xpos>=XSIZE-1)
 			  {
-				  safe_printf("RECALL Mode finished");
+				  if(USR_DEBUG){safe_printf("RECALL Mode finished");}						// on and it can only ever go once
 				  RUNNING=STOP;
 				  xpos=0;
 				  last_xpos=0;
 			  }
 		  }
 	  }else{
-		  osDelay(100);
+		  osDelay(100);					// if were stopped, let everone else have more cpu time
 	  }
 	}
 }
@@ -228,27 +220,31 @@ uint8_t read_from_file(char *filename, uint16_t **inp_array){
 	res = f_open(&fobj, filename, FA_READ);							// FATFS function opens file for reading
 	if (res!=FR_OK){														// if function failed
 		safe_printf("%s failed to open.\n\r", filename);			// print error
+		F_ErrorInterp(res);
 		return -1;
 	}
 	/* reading time*/												// if function was successful read the file with FATFS function
 	res = f_read(&fobj, &time, byte_size, &array_size_bytes);		// read first element of file = time
 	if(res!=FR_OK || byte_size != array_size_bytes){														// if function failed
 		safe_printf("%s could not be read time.\n\r", filename);			// print error
+		F_ErrorInterp(res);
 		return -1;
 	}
-	safe_printf("time: %i\n\r", time);
+	if(USR_DEBUG){safe_printf("time: %i\n\r", time);}
 	/* reading array size */
 	res = f_read(&fobj, &size, byte_size, &array_size_bytes);		// read second element of file = array size
 	if(res!=FR_OK || byte_size != array_size_bytes){														// if function failed
 			safe_printf("%s could not be read size.\n\r", filename);			// print error
+			F_ErrorInterp(res);
 			return -1;
 		}
-	safe_printf("size: %i\n\r", size);
+	if(USR_DEBUG){safe_printf("size: %i\n\r", size);}
 	/* reading array */
 	byte_size = size*sizeof(uint16_t);								// predicted byte size of array = size of array times the size of double
 	res = f_read(&fobj, inp_array, byte_size, &array_size_bytes);	// read third element of the file = array of data
 	if(res!=FR_OK|| byte_size != array_size_bytes){														// if function failed
 			safe_printf("%s could not be read buffer.\n\r", filename);			// print error
+			F_ErrorInterp(res);
 			return -1;
 		}
 	array_size = array_size_bytes/sizeof(uint16_t);					// array_size_ bytes = num bytes in array. Convert to array_size = num of elements in array

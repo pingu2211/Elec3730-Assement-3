@@ -215,7 +215,9 @@ void StartDefaultTask(void const * argument)
 {
   /* init code for FATFS */
   MX_FATFS_Init();
-
+  BSP_LCD_Init();
+  BSP_LCD_DisplayOn();
+  BSP_TP_Init();
   /* USER CODE BEGIN StartDefaultTask */
   // STEPIEN
   Ass_03_Task_01(argument);
@@ -228,6 +230,7 @@ void StartTask02(void const * argument)
   /* USER CODE BEGIN StartTask02 */
   // STEPIEN
   osDelay(100);
+
   Ass_03_Task_02(argument);
   /* USER CODE END StartTask02 */
 }

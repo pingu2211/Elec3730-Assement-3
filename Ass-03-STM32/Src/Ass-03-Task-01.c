@@ -21,7 +21,6 @@ void F_ErrorInterp(FRESULT code);
 FIL MyFile;
 FIL MyFile2, MyFile3;
 FRESULT Status;
-bool USR_DBG = false;
 
 enum CONTROL_CHARS {NUL=0,SOH,STX,ETX,EOT,ENQ,ACK,BEL,BS,TAB,LF,VT,FF,CR,SO,SI,DLE,DC1,DC2,DC3,DC4,NAK,SYN,ETB,CAN,EM,SUB,ESC,FS,GS,RS,US=31,DEL=127};
 #define MAX_PATH_LENGTH 100
@@ -85,9 +84,11 @@ int Command_Function(int args_count, char **Array_numbers[]){				// function tak
 	if (args_count>1) Args = &Array_numbers[1];
 	for (int i=0;CommandList[i].Command_string!=NULL;i++){
 		if(strcmp(CommandList[i].Command_string,Array_numbers[0])==0){	// compare input string to command list			// implemented debug messages
-			CommandList[i].Function_p(Args,args_count-1);				// reference to function the user has entered.
+			CommandList[i].Function_p(Args,args_count-1);// reference to function the user has entered.
+			return 0;
 		}
 	}
+	safe_printf("%s not found",Array_numbers[0]);
 	return 0;
 }
 
@@ -107,11 +108,8 @@ void Ass_03_Task_01(void const * argument)
 	safe_printf("Hello from Task 1 - Console (serial input)\n\r");
 	safe_printf("INFO: Initialise LCD and TP first...\n\r");
 	FRESULT Result;
+	USR_DEBUG=false;
   // STEPIEN: Initialize and turn on LCD and calibrate the touch panel
-  BSP_LCD_Init();
-  BSP_LCD_DisplayOn();
-  BSP_TP_Init();
-  //
   // Signal other tasks to start
   osSignalSet(myTask02Handle, 1);
   osSignalSet(myTask03Handle, 1);
@@ -124,67 +122,44 @@ void Ass_03_Task_01(void const * argument)
   BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
   BSP_LCD_DisplayStringAt(5, 5, (uint8_t*)"ELEC3730 Assignment 3 (v03 $Rev: 1330 $)",LEFT_MODE);
   osMutexRelease(myMutex01Handle);
-  myWriteFile();
+  int i=0;
+  char c=0;
   while (1)
   {
-  buff = malloc(2*sizeof(char));
+	c=0;
+	buff = malloc(2*sizeof(char));
 	if (buff == NULL){
 		safe_printf("ERROR ALLOCATING MEMORY\n\r");
-		return;
+		while(1);
 	}
-	int i=0;
-	char c=0;
+
 	Result = f_getcwd(workingdir, MAX_PATH_LENGTH);
 	if (Result == FR_OK){
-		safe_printf("\n\r%s>",workingdir);
+		safe_printf("0:%s>",workingdir);
 	}else{
-		safe_printf("\n\r>");
+		safe_printf("0:/>");
 	}
 	for (i=0;!(c==CR || c==LF);i++){
 		buff = realloc(buff,(i+1)*sizeof(char));
 		c=getchar();
-		if (c==BS){
+		if (c==BS||c==FF){
 			buff[--i]='\0';
-			i--;
 			safe_printf("%c %c",BS,BS);
 			continue;
 		}
+		//safe_printf("%i",c);
 		buff[i] = ((c==CR || c==LF))?'\0':c;
-		safe_printf("%c",buff[i]);
+		if(!isControlChar(buff[i]))safe_printf("%c",buff[i]);
 		HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
 	}
 	safe_printf("\n\r");
 	count = string_parser (buff, &words);
 	if (count>0)Command_Function(count, words);
+	if(USR_DEBUG){safe_printf("String Passer Count %i\n\r");}
 	free(buff);
 	free(words);
   }
 
-}
-
-void myGetLine(char ** buff){
-	buff = malloc(sizeof(char*));
-	buff = malloc(2*sizeof(char));
-	if (buff == NULL){
-		safe_printf("ERROR ALLOCATING MEMORY\n\r");
-		return;
-	}
-
-	int i=0;
-	char c=0;
-	for (i=0;!(c==CR || c==LF);i++){
-		*buff = realloc(*buff,(i+1)*sizeof(char));
-		c=getchar();
-		if (c==BS){
-			*buff[i]='\0';
-			i--;
-			continue;
-		}
-		*buff[i] = ((c==CR || c==LF))?'\0':c;
-		safe_printf("%c",*buff[i]);
-		HAL_GPIO_TogglePin(GPIOD, LD4_Pin); 		// Toggle LED4
-	}
-	return;
 }
 
 int string_parser(char *inp, char **array_of_words_p[])
@@ -192,7 +167,6 @@ int string_parser(char *inp, char **array_of_words_p[])
 	//Check if parsed string is valid, doesn't equal null and is not empty
 	if(inp == NULL || strlen(inp) == 0)
 	{
-		safe_printf("ERROR - NULL String \n\r");
 		return -1;
 	}
 	//Count number of words by increasing word_c each time a space character  is reached after a normal character
@@ -202,7 +176,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	{
 		i++;
 	}
-	while('\0' != inp[i] && '\n\r' != inp[i])
+	while('\0' != inp[i] && '\n' != inp[i])
 	{
 		if (inp[i] == ' ' && inp[i+1] != ' ' && inp[i+1] != '\0' && inp[i+1] != '\n\r')
 		{
@@ -216,7 +190,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 	if(array_of_words == NULL)
 	{
 		safe_printf("ERROR - error in Malloc 5\n\r");
-		return 0;
+		return -1;
 	}
 	/*
 	 * the next block of code stores each word in 'tempstring' and this is used to
@@ -241,7 +215,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		}
 		//count number of characters in the word
 		i = word_start;
-		while(inp[i] != ' ' && inp[i] != '\0' && inp[i] != '\n\r')
+		while(inp[i] != ' ' && inp[i] != '\0' && inp[i] != '\n')
 		{
 			character_c ++;
 			i++;
@@ -252,7 +226,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		if(temp_pointer == NULL)
 		{
 			safe_printf("ERROR - error in Malloc 6\n\r");
-			return 0;
+			return -1;
 		}
 		tempstring = temp_pointer;
 		temp_pointer = NULL;
@@ -272,7 +246,7 @@ int string_parser(char *inp, char **array_of_words_p[])
 		if(array_of_words[p] == NULL)
 		{
 			safe_printf("ERROR - error in Malloc 7\n\r");
-			return 0;
+			return -1;
 		}
 		strcpy(array_of_words[p], tempstring);
 		word_start = word_start + character_c;
@@ -286,69 +260,6 @@ int string_parser(char *inp, char **array_of_words_p[])
 	free(tempstring); //free malloc'd memory
 	return (word_c);  //return word count
 }
-
-uint8_t myReadFile()
-{
-#define READ_FILE "Hello.txt"
-#define BUFF_SIZE 256
-	uint8_t rtext[BUFF_SIZE];
-	FRESULT res;
-	uint32_t bytesread;
-
-	// Open file Hello.txt
-	if((res = f_open(&MyFile, READ_FILE, FA_READ)) != FR_OK)
-	{
-		safe_printf("ERROR: Opening '%s'\n\r", READ_FILE);
-		return 1;
-	}
-	safe_printf("Task 1: Opened file '%s'\n\r", READ_FILE);
-
-	// Read data from file
-	if ((res = f_read(&MyFile, rtext, BUFF_SIZE-1, &bytesread)) != FR_OK)
-	{
-		safe_printf("ERROR: Reading '%s'\n\r", READ_FILE);
-		f_close(&MyFile);
-		return 1;
-	}
-	rtext[bytesread] = '\0';
-	safe_printf("Task 1: Read: '%s'\n\r", rtext);
-
-	// Close file
-	f_close(&MyFile);
-
-	return 0;
-}
-
-uint8_t myWriteFile()
-{
-#define WRITE_FILE "There.txt"
-	FRESULT res;
-	UINT byteswritten;
-
-	// Open file There.txt
-	if((res = f_open(&MyFile, WRITE_FILE, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
-	{
-		safe_printf("ERROR: Opening '%s'\n\r", WRITE_FILE);
-		return 1;
-	}
-	safe_printf("Task 1: Opened file '%s'\n\r", WRITE_FILE);
-
-	// Write to file
-	if ((res = f_write(&MyFile, "Hello", 6, &byteswritten)) != FR_OK)
-	{
-		safe_printf("ERROR: Writing '%s'\n\r", WRITE_FILE);
-		f_close(&MyFile);
-		return 1;
-	}
-	safe_printf("Task 1: Written: %d bytes\n\r", byteswritten);
-
-	// Close file
-	f_close(&MyFile);
-	return 0;
-}
-
-
-
 
 int8_t ls(uint8_t *args_p[], uint8_t args_count){
           FRESULT res;
@@ -387,7 +298,7 @@ int8_t ls(uint8_t *args_p[], uint8_t args_count){
 
 
 int8_t help(uint8_t *args[], uint8_t count){   // help function to display command help messages
-	if (USR_DBG)safe_printf("%s\n\r",args[0]);
+	if(USR_DEBUG){safe_printf("%s\n\r",args[0]);}
 	if (count==0){												// when user types 'help' and no command
 			for (int h=0;CommandList[h].Command_string!=NULL;h++){
 			safe_printf("%s\t\t%s\n\r",CommandList[h].Command_string,CommandList[h].Help_s);	// print ALL command help messages
@@ -407,11 +318,11 @@ return 0;
 bool isNumber(char * str){												// checks input against ascii table
 	for (int i=0;i<strlen(str);i++){									// makes sure input is a number
 		if ( (str[i] < 48 || str[i] >57)&&!(str[i]==45||str[i]==46) ){
-			if (USR_DBG)printf("is not a number\n\r");					// print debug messages
+			if(USR_DEBUG){safe_printf("is not a number\n\r");}					// print debug messages
 			return false;
 		}
 	}
-	if (USR_DBG)printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));
+	if (USR_DEBUG){printf("\n\r|%s|string is |%lf|double\n\r",str,atof(str));}
 	return true;
 }
 /*******************************************************************************************************/
@@ -423,15 +334,15 @@ int8_t clear(uint8_t *args[], uint8_t count){	// function clears the terminal wi
 
 /*******************************************************************************************************/
 int8_t debug(uint8_t *args[], uint8_t count){		// function that is used to turn debug messages on and off
-	if (count==0)USR_DBG=!USR_DBG;				// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
+	if (count==0)USR_DEBUG=!USR_DEBUG;				// if user enters only debug (1 word), switch debug status. ie if ON then switch to OFF
 	if (count==1){
 		if (strcmp(args[1],"on")==0||strcmp(args[1],"ON")==0){	// checks if user entered the command 'debug on (or ON)'
-			USR_DBG=true;										// if so, turn debug messages on
+			USR_DEBUG=true;										// if so, turn debug messages on
 		}else{
-			USR_DBG=false;										// if user types anything else, ie 'debug off'
+			USR_DEBUG=false;										// if user types anything else, ie 'debug off'
 		}														// switch debug messages off
 	}
-	if (USR_DBG)printf("\n\rDEBUG ON\n\r");		// print ON or OFF when debug message settings are switched
+	if (USR_DEBUG){printf("\n\rDEBUG ON\n\r");}		// print ON or OFF when debug message settings are switched
 	else printf("\n\rDEBUG OFF\n\r");
 	return 0;
 }
@@ -460,7 +371,9 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){
 				safe_printf("TX time: %d", number*SECONDS_TO_MILLI);
 				Control= osPoolAlloc(LCD_ControlPool);
 				Control->run = (strcmp("-c",args_p[1])==0) ? CONTINUOUS:ONE_SHOT;
+				if(USR_DEBUG){safe_printf("Starting ADC in %s mode\n\r", (Control->run==CONTINUOUS)?"CONTINUOUS":"ONE SHOT");}
 				Control->time = number*SECONDS_TO_MILLI;
+				if(USR_DEBUG){safe_printf("Running for %i Milisecconds \n\r", Control->time);}
 				osMessagePut(LCD_ControlMsg, Control, osWaitForever);
 			}
 		}
@@ -473,7 +386,6 @@ int8_t cd(uint8_t *args_p[],uint8_t args_count){
 		FRESULT res;
 	    DIR dir;
 	    char * path = (args_p[0]!=NULL)?args_p[0]:"";
-
 	    res = f_chdir(path);
 	    if (res != FR_OK) {
 	    	F_ErrorInterp(res);
@@ -488,7 +400,7 @@ int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
 		char * path = (args_p[0]!=NULL)?args_p[0]:"";
 		if (!validPath(path)){
 			safe_printf("Invalid Folder Name, folders cannot contain ,.'\"~`!@^*|\\");
-			return 0;
+			return -1;
 		}
 		res = f_mkdir(path);
 		if (res != FR_OK){
@@ -541,7 +453,6 @@ int8_t cp(uint8_t *args_p[], uint8_t args_count){ 		// Copy selected file to sel
    	 			if (res != FR_OK){							// if function fails return error
    	 				return -1;
    	 			}
-
    	 			/*edit path*/
 				scratch_source = strrchr(source,'.');
 				if (scratch_source == NULL){
@@ -623,7 +534,7 @@ int8_t rm(uint8_t *args_p[],uint8_t args_count){
 	if (res == FR_INVALID_NAME){					// print error if file doesnt exist
 		safe_printf("%s does not exist\n\r",path);
 		F_ErrorInterp(res);
-		return 0;
+		return -1;
 	}
 	res = f_unlink (args_p[0]);						// FATfs function deletes a file
 	if (res==FR_OK){
