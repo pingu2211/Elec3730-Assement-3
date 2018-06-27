@@ -159,12 +159,12 @@ uint8_t downsampling(double *inp_array, int array_size, int ds_factor){
 	return *new_array;							// function returns downsampled array
 }
 /*******************************************************************************************************/
-/* function that opens file */
+/* function that opens file for reading and writing */
 uint8_t open_file(char *filename, double *inp_array){
 	FIL fobj;														// file object
 	FRESULT res;													// result of FATFS functions -> FR_OK = 0 = success
 	/* open file */
-	res = f_open(&fobj, filename, FA_READ);							// FATFS function opens file for reading/writing
+	res = f_open(&fobj, filename, FA_READ, FA_WRITE);							// FATFS function opens file for reading/writing
 	if (!res){														// if function failed
 		safe_printf("%s failed to open.\n\r", filename);			// print error
 		return -1;
