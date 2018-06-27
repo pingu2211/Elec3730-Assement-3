@@ -164,9 +164,34 @@ uint8_t open_file(char *filename, double *inp_array){
 	FIL fobj;														// file object
 	FRESULT res;													// result of FATFS functions -> FR_OK = 0 = success
 	/* open file */
-	res = f_open(&fobj, filename, FA_READ);							// FATFS function opens file for reading
+	res = f_open(&fobj, filename, FA_READ);							// FATFS function opens file for reading/writing
 	if (!res){														// if function failed
 		safe_printf("%s failed to open.\n\r", filename);			// print error
+		return -1;
+	}
+	return res;
+}
+/*******************************************************************************************************/
+/* function that closes file */
+uint8_t close_file(char *filename, double *inp_array){
+	FIL fobj;														// file object
+	FRESULT res;													// result of FATFS functions -> FR_OK = 0 = success
+	/* close file */
+	res = f_close(&fobj);											// FATFS function that closes file
+	if (!res){														// if function failed
+		safe_printf("%s failed to close.\n\r", filename);			// print error
+		return -1;
+	}
+	return res;
+}
+/*******************************************************************************************************/
+/* function that deletes file */
+uint8_t delete_file(char *filename, double *inp_array){
+	FRESULT res;													// result of FATFS functions -> FR_OK = 0 = success
+	/* delete file */
+	res = f_unlink(filename);										// FATFS function opens file for reading
+	if (!res){														// if function failed
+		safe_printf("Failed to remove data from %s.\n\r", filename);// print error
 		return -1;
 	}
 	return res;
