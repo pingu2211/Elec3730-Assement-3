@@ -38,7 +38,8 @@ int8_t mkdir(uint8_t *args_p[], uint8_t args_count);
 int8_t analog(uint8_t *args_p[], uint8_t args_count);
 int8_t cd(uint8_t *args_p[], uint8_t args_count);
 int8_t clear(uint8_t *args_p[], uint8_t args_count);
-int8_t cp(uint8_t *args_p[], uint8_t args_count);
+int8_t cp(char *filename, uint8_t *args_p[], uint8_t args_count);
+int8_t ct(uint8_t *args_p[],uint8_t args_count){
 int8_t debug(uint8_t *args_p[], uint8_t args_count);
 int8_t help(uint8_t *args_p[], uint8_t args_count);
 int8_t path(uint8_t *args_p[], uint8_t args_count);
@@ -52,6 +53,7 @@ const command_s CommandList[] = {								// structure holding list of commands a
 {"cd", 			&cd, 		"Change current directory"},
 {"mkdir", 		&mkdir, 	"Create new folder"},
 {"cp", 			&cp, 		"Copy selected file to selected location"},
+{"ct", 			&ct, 		"Cut selected file and paste to selected location"},
 {"rm", 			&rm, 		"Deletes selected file"},
 {"debug", 		&debug,		"Turns debug messages on and off"},	// debug messages on or off
 {"help",       	&help,		"Show help messages"},
@@ -448,7 +450,64 @@ int8_t analog(uint8_t *args_p[],uint8_t args_count){
 	return 0;
 	}
 /*******************************************************************************************************/
+int8_t cp(char *filename, uint8_t *args_p[],uint8_t args_count){ 		// Copy selected file to selected location
+    FIL f_source, f_dest;     										// File objects
+    BYTE buffer[4096];   								// File copy buffer
+    FRESULT res;          								// FatFs function common result code
+    UINT br, bw;         								// File read/write count
+    DIR dir;
+   	f_source = args_p[0];
+   	f_dest = args_p[1];
+   	 	 if (validPath(f_dest)){							//check if the new path is a valid path
+   	 		res = f_stat(f_dest);
+   	 		if (res != FR_OK){
+   	 			res = f_open(&dir, filename, FA_READ);	 	// Open source file// FATFS function opens file
+   	 			if (res != FR_OK){								// if function fails return error
+   	 				return -1;
+   	 			}
+   	 			/* Create destination file on the drive 0 */
+   	 			res = f_open(&dir, filename, FA_WRITE | FA_CREATE_ALWAYS);	// FATFS function opens file
+   	 			if (res != FR_OK){												// if function fails return error
+   	 				return -1;
+   	 			}
+   	 			/* Copy source to destination */
+   	 			for (;;) {
+   	 				res = f_read(&f_source, buffer, sizeof buffer, &br);  	// Read a chunk of source file
+   	 				if (res || br == 0){ break; 							// error or eof
+   	 				}
+   	 				res = f_write(&dir, buffer, br, &bw);            	// Write it to the destination file
+   	 				if (res || bw < br){ break; 							// error or disk full
+   	 				}
+   	 			}
+   	 			safe_printf("%s does not exist. %s copied in current directory.\n\r", f_dest, filename);
+   	 		}
+   	 		res = f_open(&f_source, filename, FA_READ);	 	// Open source file - FATFS function opens file
+			if (res != FR_OK){								// if function fails return error
+				return -1;
+			}
+			/* Create destination file on the drive 0 */
+			res = f_open(&f_dest, filename, FA_WRITE | FA_CREATE_ALWAYS);	// FATFS function opens file
+			if (res != FR_OK){												// if function fails return error
+				return -1;
+			}
 
+			/* Copy source to destination */
+			for (;;) {
+				res = f_read(&f_source, buffer, sizeof buffer, &br);  	// Read a chunk of source file
+				if (res || br == 0){ break; 							// error or eof
+				}
+				res = f_write(&f_dest, buffer, br, &bw);            	// Write it to the destination file
+				if (res || bw < br){ break; 							// error or disk full
+				}
+			}
+			safe_printf("%s copied to %s\n\r", filename, f_dest)
+   	 	 }
+    /* Close open files */
+    f_close(&f_source);
+    f_close(&f_dest);
+
+    return res;
+}
 /*******************************************************************************************************/
 int8_t cd(uint8_t *args_p[],uint8_t args_count){
 		FRESULT res;
@@ -481,7 +540,7 @@ int8_t mkdir(uint8_t *args_p[],uint8_t args_count){
 		return res;
 }
 /*******************************************************************************************************/
-int8_t cp(uint8_t *args_p[],uint8_t args_count){
+int8_t ct(uint8_t *args_p[],uint8_t args_count){
 	 FRESULT res;
 	 DIR dir;
 	 char * path_old = args_p[0];
@@ -500,7 +559,6 @@ int8_t cp(uint8_t *args_p[],uint8_t args_count){
 	 		 return FR_INVALID_NAME;
 	 	 }
 }
-
 /*******************************************************************************************************/
 int8_t rm(uint8_t *args_p[],uint8_t args_count){
 	FILINFO * info;
