@@ -185,18 +185,6 @@ uint8_t close_file(char *filename, double *inp_array){
 	return res;
 }
 /*******************************************************************************************************/
-/* function that deletes file */
-uint8_t delete_file(char *filename, double *inp_array){
-	FRESULT res;													// result of FATFS functions -> FR_OK = 0 = success
-	/* delete file */
-	res = f_unlink(filename);										// FATFS function opens file for reading
-	if (!res){														// if function failed
-		safe_printf("Failed to remove data from %s.\n\r", filename);// print error
-		return -1;
-	}
-	return res;
-}
-/*******************************************************************************************************/
 /* function that reads array from file */
 uint8_t read_from_file(char *filename, double *inp_array){
 	FIL fobj;														// file object
